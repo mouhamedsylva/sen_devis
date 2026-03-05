@@ -303,16 +303,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return Column(
       children: [
         Container(
-          width: 64,
-          height: 64,
+          width: 80,
+          height: 80,
           decoration: BoxDecoration(
-            color: const Color(0xFF0D5C63).withOpacity(0.20),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF0D5C63).withOpacity(0.2),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
-          child: const Icon(
-            Icons.account_balance_wallet,
-            size: 40,
-            color: Color(0xFF0D5C63),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Image.asset(
+              'assets/icons/logo.png',
+              fit: BoxFit.contain,
+            ),
           ),
         ).animate().scale(
           duration: 600.ms,

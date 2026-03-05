@@ -79,15 +79,18 @@ extension QuoteExtension on Quote {
   }
   
   // Calculer le montant de l'acompte
-  double get depositAmount {
+  double get depositAmountValue {
     if (!depositRequired) return 0.0;
+    if (depositType == 'amount') {
+      return depositAmount;
+    }
     return totalTTC * (depositPercentage / 100);
   }
   
   // Calculer le solde restant
   double get remainingAmount {
     if (!depositRequired) return totalTTC;
-    return totalTTC - depositAmount;
+    return totalTTC - depositAmountValue;
   }
 }
 
@@ -213,7 +216,9 @@ class CompanionHelpers {
     String status = 'draft',
     String? notes,
     bool depositRequired = true,
+    String depositType = 'percentage',
     double depositPercentage = 40.0,
+    double depositAmount = 0.0,
     int validityDays = 30,
     String? deliveryDelay,
   }) {
@@ -226,7 +231,9 @@ class CompanionHelpers {
       status: drift.Value(status),
       notes: drift.Value(notes),
       depositRequired: drift.Value(depositRequired),
+      depositType: drift.Value(depositType),
       depositPercentage: drift.Value(depositPercentage),
+      depositAmount: drift.Value(depositAmount),
       validityDays: drift.Value(validityDays),
       deliveryDelay: drift.Value(deliveryDelay),
       createdAt: now,
@@ -246,9 +253,13 @@ class CompanionHelpers {
     final totalVAT = totalHT * vatRate / 100;
     final totalTTC = totalHT + totalVAT;
 
+    // Convertir les productId invalides (-1, 0, ou négatifs) en null
+    // pour éviter les violations de contrainte de clé étrangère
+    final validProductId = (productId != null && productId > 0) ? productId : null;
+
     return QuoteItemsCompanion.insert(
       quoteId: quoteId,
-      productId: drift.Value(productId),
+      productId: drift.Value(validProductId),
       productName: productName,
       quantity: quantity,
       unitPrice: unitPrice,

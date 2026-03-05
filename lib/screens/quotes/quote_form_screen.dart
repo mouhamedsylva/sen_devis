@@ -34,6 +34,7 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
   final _notesController = TextEditingController();
   final _deliveryDelayController = TextEditingController();
   final _depositPercentageController = TextEditingController(text: '40');
+  final _depositAmountController = TextEditingController(text: '0');
   final _validityDaysController = TextEditingController(text: '30');
 
   int? _quoteId;
@@ -46,15 +47,19 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
   String _quoteNumber = '';
   
   // Nouvelles conditions du devis
-  bool _depositRequired = true;
+  bool _depositRequired = false;
+  String _depositType = 'percentage'; // 'percentage' ou 'amount'
   double _depositPercentage = 40.0;
+  double _depositAmount = 0.0;
   int _validityDays = 30;
+  bool _validityEnabled = false;
+  bool _deliveryDelayEnabled = false;
 
   double _totalHT = 0.0;
   double _totalVAT = 0.0;
   double _totalTTC = 0.0;
 
-  // Couleurs dynamiques (initialisées dans build)
+  // Couleurs dynamiques
   late Color _primaryColor;
   late Color _backgroundColor;
   late Color _cardBackground;
@@ -76,6 +81,14 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
   @override
   void initState() {
     super.initState();
+    // Initialiser les couleurs avec des valeurs par défaut (mode clair)
+    _primaryColor = const Color(0xFF0D7C7E);
+    _backgroundColor = const Color(0xFFF8F9FA);
+    _cardBackground = Colors.white;
+    _textPrimary = const Color(0xFF1F2937);
+    _textSecondary = const Color(0xFF6B7280);
+    _borderColor = const Color(0xFFE5E7EB);
+    
     _generateQuoteNumber();
     // ✅ Écouter les changements dans les notes pour sauvegarder automatiquement
     _notesController.addListener(() {
@@ -255,6 +268,21 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
             .toList();
         _notesController.text = quoteDetails.quote.notes ?? '';
         _quoteNumber = quoteDetails.quote.quoteNumber;
+        
+        // Charger les conditions
+        _depositRequired = quoteDetails.quote.depositRequired ?? false;
+        _depositType = quoteDetails.quote.depositType ?? 'percentage';
+        _depositPercentage = quoteDetails.quote.depositPercentage ?? 40.0;
+        _depositAmount = quoteDetails.quote.depositAmount ?? 0.0;
+        _depositPercentageController.text = _depositPercentage.toStringAsFixed(0);
+        _depositAmountController.text = _depositAmount.toStringAsFixed(0);
+        
+        _validityDays = quoteDetails.quote.validityDays ?? 30;
+        _validityEnabled = _validityDays > 0;
+        _validityDaysController.text = _validityDays.toString();
+        
+        _deliveryDelayController.text = quoteDetails.quote.deliveryDelay ?? '';
+        _deliveryDelayEnabled = quoteDetails.quote.deliveryDelay != null && quoteDetails.quote.deliveryDelay!.isNotEmpty;
       });
       _calculateTotals();
     }
@@ -265,6 +293,7 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
     _notesController.dispose();
     _deliveryDelayController.dispose();
     _depositPercentageController.dispose();
+    _depositAmountController.dispose();
     _validityDaysController.dispose();
     super.dispose();
   }
@@ -286,6 +315,127 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
       _totalVAT = vat;
       _totalTTC = ttc;
     });
+  }
+
+  Future<void> _handleAbandonQuote() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF2C2C2C) : Colors.white;
+    final textPrimary = isDark ? Colors.white : const Color(0xFF1F2937);
+    final textSecondary = isDark ? Colors.grey.shade400 : const Color(0xFF6B7280);
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        backgroundColor: cardBg,
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.delete_outline,
+                  color: Colors.red.shade600,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                context.tr('abandon_quote'),
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: textPrimary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                context.tr('abandon_quote_message'),
+                style: TextStyle(
+                  fontSize: 14,
+                  color: textSecondary,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        side: BorderSide(color: _borderColor),
+                      ),
+                      child: Text(
+                        context.tr('cancel'),
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: textPrimary,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade600,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        context.tr('abandon'),
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (confirm == true) {
+      // Supprimer le brouillon sauvegardé
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('quote_draft');
+      
+      if (mounted) {
+        MobileUtils.showMobileSnackBar(
+          context,
+          message: context.tr('quote_abandoned'),
+          icon: Icons.check_circle,
+          backgroundColor: Colors.green.shade600,
+        );
+        Navigator.of(context).pop();
+      }
+    }
   }
 
   Future<void> _selectClient() async {
@@ -597,7 +747,43 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
     final priceController = TextEditingController();
     final taxRateController = TextEditingController(text: '18.0');
     final quantityController = TextEditingController(text: '1');
+    
+    // FocusNodes pour gérer l'effacement automatique
+    final priceFocusNode = FocusNode();
+    final taxRateFocusNode = FocusNode();
+    final quantityFocusNode = FocusNode();
+    
     bool isTaxable = true;
+    
+    // Vider le champ prix lors du premier focus
+    bool priceCleared = false;
+    void priceFocusListener() {
+      if (priceFocusNode.hasFocus && !priceCleared && priceController.text.isEmpty) {
+        priceController.clear();
+        priceCleared = true;
+      }
+    }
+    priceFocusNode.addListener(priceFocusListener);
+    
+    // Vider le champ taux de TVA lors du premier focus
+    bool taxRateCleared = false;
+    void taxRateFocusListener() {
+      if (taxRateFocusNode.hasFocus && !taxRateCleared && taxRateController.text == '18.0') {
+        taxRateController.clear();
+        taxRateCleared = true;
+      }
+    }
+    taxRateFocusNode.addListener(taxRateFocusListener);
+    
+    // Vider le champ quantité lors du premier focus
+    bool quantityCleared = false;
+    void quantityFocusListener() {
+      if (quantityFocusNode.hasFocus && !quantityCleared && quantityController.text == '1') {
+        quantityController.clear();
+        quantityCleared = true;
+      }
+    }
+    quantityFocusNode.addListener(quantityFocusListener);
     
     // Variable pour stocker les suggestions (en dehors du builder pour persister)
     List<Product> suggestions = [];
@@ -760,6 +946,7 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                             const SizedBox(height: 8),
                             _buildSheetTextField(
                               controller: priceController,
+                              focusNode: priceFocusNode,
                               hint: '0.00',
                               icon: Icons.attach_money,
                               keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -776,6 +963,7 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                             const SizedBox(height: 8),
                             _buildSheetTextField(
                               controller: taxRateController,
+                              focusNode: taxRateFocusNode,
                               hint: '18.0',
                               suffix: '%',
                               enabled: isTaxable,
@@ -796,6 +984,7 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                   const SizedBox(height: 8),
                   _buildSheetTextField(
                     controller: quantityController,
+                    focusNode: quantityFocusNode,
                     hint: '1',
                     icon: Icons.numbers,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -966,12 +1155,43 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
     nameController.dispose();
     priceController.dispose();
     taxRateController.dispose();
-    quantityController.dispose(); // ✅ AJOUTER
+    quantityController.dispose();
+    
+    // Retirer les listeners et disposer les FocusNodes de manière sécurisée
+    try {
+      priceFocusNode.removeListener(priceFocusListener);
+      priceFocusNode.dispose();
+    } catch (e) {
+      // Ignorer les erreurs de dispose
+    }
+    try {
+      taxRateFocusNode.removeListener(taxRateFocusListener);
+      taxRateFocusNode.dispose();
+    } catch (e) {
+      // Ignorer les erreurs de dispose
+    }
+    try {
+      quantityFocusNode.removeListener(quantityFocusListener);
+      quantityFocusNode.dispose();
+    } catch (e) {
+      // Ignorer les erreurs de dispose
+    }
   }
 
   Future<void> _showQuantityDialog(Product product) async {
     final quantityController = TextEditingController(text: '1');
+    final quantityFocusNode = FocusNode();
     final priceTTC = product.unitPrice * (1 + product.vatRate / 100);
+
+    // Vider le champ quantité lors du premier focus
+    bool quantityCleared = false;
+    void quantityFocusListener() {
+      if (quantityFocusNode.hasFocus && !quantityCleared && quantityController.text == '1') {
+        quantityController.clear();
+        quantityCleared = true;
+      }
+    }
+    quantityFocusNode.addListener(quantityFocusListener);
 
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
@@ -1061,6 +1281,7 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
               const SizedBox(height: 8),
               _buildSheetTextField(
                 controller: quantityController,
+                focusNode: quantityFocusNode,
                 hint: '1',
                 icon: Icons.numbers,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -1133,6 +1354,14 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
     }
 
     quantityController.dispose();
+    
+    // Retirer le listener et disposer le FocusNode de manière sécurisée
+    try {
+      quantityFocusNode.removeListener(quantityFocusListener);
+      quantityFocusNode.dispose();
+    } catch (e) {
+      // Ignorer les erreurs de dispose
+    }
   }
 
   void _removeItem(int index) {
@@ -1398,9 +1627,13 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
         notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
         quoteNumber: _quoteNumber, // ✅ Passer le numéro de devis généré
         depositRequired: _depositRequired,
-        depositPercentage: _depositPercentage,
-        validityDays: _validityDays,
-        deliveryDelay: _deliveryDelayController.text.trim().isEmpty ? null : _deliveryDelayController.text.trim(),
+        depositType: _depositType,
+        depositPercentage: _depositRequired && _depositType == 'percentage' ? _depositPercentage : 0,
+        depositAmount: _depositRequired && _depositType == 'amount' ? _depositAmount : 0,
+        validityDays: _validityEnabled ? _validityDays : 0,
+        deliveryDelay: _deliveryDelayEnabled && _deliveryDelayController.text.trim().isNotEmpty 
+            ? _deliveryDelayController.text.trim() 
+            : null,
       );
       success = quote != null;
     } else {
@@ -2142,16 +2375,53 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
               ),
             ),
           ),
-          TextButton(
-            onPressed: () {},
-            child: Text(
-              context.tr('draft'),
-              style: TextStyle(
-                color: _primaryColor,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+          PopupMenuButton<String>(
+            icon: Icon(Icons.more_vert, color: _textPrimary),
+            onSelected: (value) async {
+              if (value == 'abandon') {
+                _handleAbandonQuote();
+              } else if (value == 'draft') {
+                await _saveDraft();
+                if (mounted) {
+                  MobileUtils.showMobileSnackBar(
+                    context,
+                    message: 'Brouillon sauvegardé',
+                    icon: Icons.check_circle,
+                    backgroundColor: Colors.green.shade600,
+                  );
+                }
+              }
+            },
+            itemBuilder: (context) => [
+              if (!isEdit) ...[
+                PopupMenuItem(
+                  value: 'draft',
+                  child: Row(
+                    children: [
+                      Icon(Icons.save_outlined, size: 20, color: _primaryColor),
+                      const SizedBox(width: 12),
+                      Text(
+                        context.tr('save_draft'),
+                        style: TextStyle(color: _textPrimary),
+                      ),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'abandon',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.delete_outline, size: 20, color: Colors.red),
+                      const SizedBox(width: 12),
+                      Text(
+                        context.tr('abandon_quote'),
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
           ),
         ],
       ),
@@ -2178,6 +2448,7 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
     bool enabled = true,
     bool autofocus = false,
     TextInputType? keyboardType,
+    FocusNode? focusNode,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -2187,6 +2458,7 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
       ),
       child: TextField(
         controller: controller,
+        focusNode: focusNode,
         enabled: enabled,
         autofocus: autofocus,
         keyboardType: keyboardType,
@@ -3091,7 +3363,7 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                       onChanged: (value) {
                         MobileUtils.lightHaptic();
                         setState(() {
-                          _depositRequired = value ?? true;
+                          _depositRequired = value ?? false;
                         });
                       },
                       activeColor: _primaryColor,
@@ -3109,48 +3381,181 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                   ],
                 ),
                 if (_depositRequired) ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const SizedBox(width: 48),
-                      Expanded(
-                        child: TextField(
-                          controller: _depositPercentageController,
-                          keyboardType: TextInputType.number,
-                          onChanged: (value) {
-                            final percentage = double.tryParse(value) ?? 40.0;
-                            setState(() {
-                              _depositPercentage = percentage.clamp(0, 100);
-                            });
-                          },
-                          decoration: InputDecoration(
-                            labelText: 'Pourcentage',
-                            suffixText: '%',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
+                  const SizedBox(height: 12),
+                  // Sélecteur de type d'acompte
+                  Padding(
+                    padding: const EdgeInsets.only(left: 48, right: 12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            onTap: () {
+                              MobileUtils.lightHaptic();
+                              setState(() {
+                                _depositType = 'percentage';
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                              decoration: BoxDecoration(
+                                color: _depositType == 'percentage' 
+                                    ? _primaryColor 
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: _depositType == 'percentage' 
+                                      ? _primaryColor 
+                                      : _borderColor,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.percent,
+                                    size: 16,
+                                    color: _depositType == 'percentage' 
+                                        ? Colors.white 
+                                        : _textSecondary,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Pourcentage',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: _depositType == 'percentage' 
+                                          ? Colors.white 
+                                          : _textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: _primaryColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          CurrencyFormatter.format(_totalTTC * (_depositPercentage / 100)),
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: _primaryColor,
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: InkWell(
+                            onTap: () {
+                              MobileUtils.lightHaptic();
+                              setState(() {
+                                _depositType = 'amount';
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                              decoration: BoxDecoration(
+                                color: _depositType == 'amount' 
+                                    ? _primaryColor 
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: _depositType == 'amount' 
+                                      ? _primaryColor 
+                                      : _borderColor,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.attach_money,
+                                    size: 16,
+                                    color: _depositType == 'amount' 
+                                        ? Colors.white 
+                                        : _textSecondary,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Montant',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: _depositType == 'amount' 
+                                          ? Colors.white 
+                                          : _textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                  const SizedBox(height: 8),
+                  // Champ de saisie selon le type
+                  if (_depositType == 'percentage')
+                    Row(
+                      children: [
+                        const SizedBox(width: 48),
+                        Expanded(
+                          child: TextField(
+                            controller: _depositPercentageController,
+                            keyboardType: TextInputType.number,
+                            onChanged: (value) {
+                              final percentage = double.tryParse(value) ?? 40.0;
+                              setState(() {
+                                _depositPercentage = percentage.clamp(0, 100);
+                              });
+                            },
+                            decoration: InputDecoration(
+                              labelText: 'Pourcentage',
+                              suffixText: '%',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: _primaryColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            CurrencyFormatter.format(_totalTTC * (_depositPercentage / 100)),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: _primaryColor,
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  else
+                    Padding(
+                      padding: const EdgeInsets.only(left: 48, right: 12),
+                      child: TextField(
+                        controller: _depositAmountController,
+                        keyboardType: TextInputType.number,
+                        onChanged: (value) {
+                          final amount = double.tryParse(value.replaceAll(',', '.')) ?? 0.0;
+                          setState(() {
+                            _depositAmount = amount;
+                          });
+                        },
+                        decoration: InputDecoration(
+                          labelText: 'Montant de l\'acompte',
+                          suffixText: 'FCFA',
+                          helperText: _totalTTC > 0 
+                              ? 'Soit ${((_depositAmount / _totalTTC) * 100).toStringAsFixed(1)}% du total'
+                              : null,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        ),
+                      ),
+                    ),
                 ],
               ],
             ),
@@ -3159,63 +3564,147 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
           const SizedBox(height: 12),
           
           // Validité du devis
-          TextField(
-            controller: _validityDaysController,
-            keyboardType: TextInputType.number,
-            onChanged: (value) {
-              final days = int.tryParse(value) ?? 30;
-              setState(() {
-                _validityDays = days;
-              });
-            },
-            decoration: InputDecoration(
-              labelText: 'Validité (jours)',
-              hintText: '30',
-              prefixIcon: Icon(Icons.calendar_today, color: _primaryColor, size: 20),
-              suffixText: 'jours',
-              helperText: 'Expire le ${DateFormatter.format(_selectedDate.add(Duration(days: _validityDays)))}',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: _borderColor),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: _borderColor),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: _primaryColor, width: 2),
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-              filled: true,
-              fillColor: _backgroundColor,
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: _backgroundColor,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: _borderColor),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Checkbox(
+                      value: _validityEnabled,
+                      onChanged: (value) {
+                        MobileUtils.lightHaptic();
+                        setState(() {
+                          _validityEnabled = value ?? false;
+                        });
+                      },
+                      activeColor: _primaryColor,
+                    ),
+                    Expanded(
+                      child: Text(
+                        'Validité du devis',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: _textPrimary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (_validityEnabled) ...[
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 48),
+                    child: TextField(
+                      controller: _validityDaysController,
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        final days = int.tryParse(value) ?? 30;
+                        setState(() {
+                          _validityDays = days;
+                        });
+                      },
+                      decoration: InputDecoration(
+                        labelText: 'Nombre de jours',
+                        hintText: '30',
+                        prefixIcon: Icon(Icons.calendar_today, color: _primaryColor, size: 20),
+                        suffixText: 'jours',
+                        helperText: 'Expire le ${DateFormatter.format(_selectedDate.add(Duration(days: _validityDays)))}',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: _borderColor),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: _borderColor),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: _primaryColor, width: 2),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        filled: true,
+                        fillColor: _cardBackground,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
           
           const SizedBox(height: 12),
           
           // Délai de livraison
-          TextField(
-            controller: _deliveryDelayController,
-            decoration: InputDecoration(
-              labelText: 'Délai de livraison',
-              hintText: 'Ex: 2 semaines, 15 jours ouvrés...',
-              prefixIcon: Icon(Icons.local_shipping_outlined, color: _primaryColor, size: 20),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: _borderColor),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: _borderColor),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: _primaryColor, width: 2),
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-              filled: true,
-              fillColor: _backgroundColor,
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: _backgroundColor,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: _borderColor),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Checkbox(
+                      value: _deliveryDelayEnabled,
+                      onChanged: (value) {
+                        MobileUtils.lightHaptic();
+                        setState(() {
+                          _deliveryDelayEnabled = value ?? false;
+                        });
+                      },
+                      activeColor: _primaryColor,
+                    ),
+                    Expanded(
+                      child: Text(
+                        'Délai de livraison',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: _textPrimary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (_deliveryDelayEnabled) ...[
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 48),
+                    child: TextField(
+                      controller: _deliveryDelayController,
+                      decoration: InputDecoration(
+                        labelText: 'Délai',
+                        hintText: 'Ex: 2 semaines, 15 jours ouvrés...',
+                        prefixIcon: Icon(Icons.local_shipping_outlined, color: _primaryColor, size: 20),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: _borderColor),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: _borderColor),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: _primaryColor, width: 2),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        filled: true,
+                        fillColor: _cardBackground,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ],

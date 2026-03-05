@@ -51,7 +51,9 @@ class QuoteProvider with ChangeNotifier {
     String? notes,
     String? quoteNumber, // ✅ Paramètre optionnel pour le numéro de devis
     bool depositRequired = true,
+    String depositType = 'percentage',
     double depositPercentage = 40.0,
+    double depositAmount = 0.0,
     int validityDays = 30,
     String? deliveryDelay,
   }) async {
@@ -71,7 +73,9 @@ class QuoteProvider with ChangeNotifier {
           quoteDate: quoteDate,
           notes: notes,
           depositRequired: depositRequired,
+          depositType: depositType,
           depositPercentage: depositPercentage,
+          depositAmount: depositAmount,
           validityDays: validityDays,
           deliveryDelay: deliveryDelay,
         );

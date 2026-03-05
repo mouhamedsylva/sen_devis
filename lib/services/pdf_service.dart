@@ -505,7 +505,10 @@ class PdfService {
                       pw.Column(
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
-                          pw.Text('ACOMPTE (${quote.depositPercentage.toStringAsFixed(0)}%)',
+                          pw.Text(
+                            quote.depositType == 'percentage'
+                                ? 'ACOMPTE (${quote.depositPercentage.toStringAsFixed(0)}%)'
+                                : 'ACOMPTE',
                             style: pw.TextStyle(
                               fontSize: 7.5, fontWeight: pw.FontWeight.bold,
                               color: _charcoal, letterSpacing: 0.8,
@@ -516,7 +519,11 @@ class PdfService {
                         ],
                       ),
                       pw.Text(
-                        CurrencyFormatter.format(quote.totalTTC * (quote.depositPercentage / 100)),
+                        CurrencyFormatter.format(
+                          quote.depositType == 'percentage'
+                              ? quote.totalTTC * (quote.depositPercentage / 100)
+                              : quote.depositAmount
+                        ),
                         style: pw.TextStyle(
                           fontSize: 12, fontWeight: pw.FontWeight.bold, color: _charcoal,
                         ),
@@ -592,7 +599,9 @@ class PdfService {
               _footerCondition('Validité', '${quote.validityDays} jours'),
               pw.Container(width: 0.5, height: 28, color: _tealMid),
               _footerCondition('Acompte', quote.depositRequired 
-                  ? '${quote.depositPercentage.toStringAsFixed(0)}% à la commande' 
+                  ? (quote.depositType == 'percentage'
+                      ? '${quote.depositPercentage.toStringAsFixed(0)}% à la commande'
+                      : '${CurrencyFormatter.format(quote.depositAmount)} à la commande')
                   : 'Paiement comptant'),
               pw.Container(width: 0.5, height: 28, color: _tealMid),
               _footerCondition('Délai livraison', quote.deliveryDelay ?? 'À définir'),

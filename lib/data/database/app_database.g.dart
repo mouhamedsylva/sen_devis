@@ -2435,6 +2435,18 @@ class $QuotesTable extends Quotes with TableInfo<$QuotesTable, Quote> {
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _depositTypeMeta = const VerificationMeta(
+    'depositType',
+  );
+  @override
+  late final GeneratedColumn<String> depositType = GeneratedColumn<String>(
+    'deposit_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('percentage'),
+  );
   static const VerificationMeta _depositPercentageMeta = const VerificationMeta(
     'depositPercentage',
   );
@@ -2448,6 +2460,18 @@ class $QuotesTable extends Quotes with TableInfo<$QuotesTable, Quote> {
         requiredDuringInsert: false,
         defaultValue: const Constant(40.0),
       );
+  static const VerificationMeta _depositAmountMeta = const VerificationMeta(
+    'depositAmount',
+  );
+  @override
+  late final GeneratedColumn<double> depositAmount = GeneratedColumn<double>(
+    'deposit_amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
   static const VerificationMeta _validityDaysMeta = const VerificationMeta(
     'validityDays',
   );
@@ -2517,7 +2541,9 @@ class $QuotesTable extends Quotes with TableInfo<$QuotesTable, Quote> {
     totalTTC,
     notes,
     depositRequired,
+    depositType,
     depositPercentage,
+    depositAmount,
     validityDays,
     deliveryDelay,
     deletedAt,
@@ -2613,12 +2639,30 @@ class $QuotesTable extends Quotes with TableInfo<$QuotesTable, Quote> {
         ),
       );
     }
+    if (data.containsKey('deposit_type')) {
+      context.handle(
+        _depositTypeMeta,
+        depositType.isAcceptableOrUnknown(
+          data['deposit_type']!,
+          _depositTypeMeta,
+        ),
+      );
+    }
     if (data.containsKey('deposit_percentage')) {
       context.handle(
         _depositPercentageMeta,
         depositPercentage.isAcceptableOrUnknown(
           data['deposit_percentage']!,
           _depositPercentageMeta,
+        ),
+      );
+    }
+    if (data.containsKey('deposit_amount')) {
+      context.handle(
+        _depositAmountMeta,
+        depositAmount.isAcceptableOrUnknown(
+          data['deposit_amount']!,
+          _depositAmountMeta,
         ),
       );
     }
@@ -2715,9 +2759,17 @@ class $QuotesTable extends Quotes with TableInfo<$QuotesTable, Quote> {
         DriftSqlType.bool,
         data['${effectivePrefix}deposit_required'],
       )!,
+      depositType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}deposit_type'],
+      )!,
       depositPercentage: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
         data['${effectivePrefix}deposit_percentage'],
+      )!,
+      depositAmount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}deposit_amount'],
       )!,
       validityDays: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
@@ -2760,7 +2812,9 @@ class Quote extends DataClass implements Insertable<Quote> {
   final double totalTTC;
   final String? notes;
   final bool depositRequired;
+  final String depositType;
   final double depositPercentage;
+  final double depositAmount;
   final int validityDays;
   final String? deliveryDelay;
   final DateTime? deletedAt;
@@ -2778,7 +2832,9 @@ class Quote extends DataClass implements Insertable<Quote> {
     required this.totalTTC,
     this.notes,
     required this.depositRequired,
+    required this.depositType,
     required this.depositPercentage,
+    required this.depositAmount,
     required this.validityDays,
     this.deliveryDelay,
     this.deletedAt,
@@ -2801,7 +2857,9 @@ class Quote extends DataClass implements Insertable<Quote> {
       map['notes'] = Variable<String>(notes);
     }
     map['deposit_required'] = Variable<bool>(depositRequired);
+    map['deposit_type'] = Variable<String>(depositType);
     map['deposit_percentage'] = Variable<double>(depositPercentage);
+    map['deposit_amount'] = Variable<double>(depositAmount);
     map['validity_days'] = Variable<int>(validityDays);
     if (!nullToAbsent || deliveryDelay != null) {
       map['delivery_delay'] = Variable<String>(deliveryDelay);
@@ -2829,7 +2887,9 @@ class Quote extends DataClass implements Insertable<Quote> {
           ? const Value.absent()
           : Value(notes),
       depositRequired: Value(depositRequired),
+      depositType: Value(depositType),
       depositPercentage: Value(depositPercentage),
+      depositAmount: Value(depositAmount),
       validityDays: Value(validityDays),
       deliveryDelay: deliveryDelay == null && nullToAbsent
           ? const Value.absent()
@@ -2859,7 +2919,9 @@ class Quote extends DataClass implements Insertable<Quote> {
       totalTTC: serializer.fromJson<double>(json['totalTTC']),
       notes: serializer.fromJson<String?>(json['notes']),
       depositRequired: serializer.fromJson<bool>(json['depositRequired']),
+      depositType: serializer.fromJson<String>(json['depositType']),
       depositPercentage: serializer.fromJson<double>(json['depositPercentage']),
+      depositAmount: serializer.fromJson<double>(json['depositAmount']),
       validityDays: serializer.fromJson<int>(json['validityDays']),
       deliveryDelay: serializer.fromJson<String?>(json['deliveryDelay']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
@@ -2882,7 +2944,9 @@ class Quote extends DataClass implements Insertable<Quote> {
       'totalTTC': serializer.toJson<double>(totalTTC),
       'notes': serializer.toJson<String?>(notes),
       'depositRequired': serializer.toJson<bool>(depositRequired),
+      'depositType': serializer.toJson<String>(depositType),
       'depositPercentage': serializer.toJson<double>(depositPercentage),
+      'depositAmount': serializer.toJson<double>(depositAmount),
       'validityDays': serializer.toJson<int>(validityDays),
       'deliveryDelay': serializer.toJson<String?>(deliveryDelay),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
@@ -2903,7 +2967,9 @@ class Quote extends DataClass implements Insertable<Quote> {
     double? totalTTC,
     Value<String?> notes = const Value.absent(),
     bool? depositRequired,
+    String? depositType,
     double? depositPercentage,
+    double? depositAmount,
     int? validityDays,
     Value<String?> deliveryDelay = const Value.absent(),
     Value<DateTime?> deletedAt = const Value.absent(),
@@ -2921,7 +2987,9 @@ class Quote extends DataClass implements Insertable<Quote> {
     totalTTC: totalTTC ?? this.totalTTC,
     notes: notes.present ? notes.value : this.notes,
     depositRequired: depositRequired ?? this.depositRequired,
+    depositType: depositType ?? this.depositType,
     depositPercentage: depositPercentage ?? this.depositPercentage,
+    depositAmount: depositAmount ?? this.depositAmount,
     validityDays: validityDays ?? this.validityDays,
     deliveryDelay: deliveryDelay.present
         ? deliveryDelay.value
@@ -2947,9 +3015,15 @@ class Quote extends DataClass implements Insertable<Quote> {
       depositRequired: data.depositRequired.present
           ? data.depositRequired.value
           : this.depositRequired,
+      depositType: data.depositType.present
+          ? data.depositType.value
+          : this.depositType,
       depositPercentage: data.depositPercentage.present
           ? data.depositPercentage.value
           : this.depositPercentage,
+      depositAmount: data.depositAmount.present
+          ? data.depositAmount.value
+          : this.depositAmount,
       validityDays: data.validityDays.present
           ? data.validityDays.value
           : this.validityDays,
@@ -2976,7 +3050,9 @@ class Quote extends DataClass implements Insertable<Quote> {
           ..write('totalTTC: $totalTTC, ')
           ..write('notes: $notes, ')
           ..write('depositRequired: $depositRequired, ')
+          ..write('depositType: $depositType, ')
           ..write('depositPercentage: $depositPercentage, ')
+          ..write('depositAmount: $depositAmount, ')
           ..write('validityDays: $validityDays, ')
           ..write('deliveryDelay: $deliveryDelay, ')
           ..write('deletedAt: $deletedAt, ')
@@ -2999,7 +3075,9 @@ class Quote extends DataClass implements Insertable<Quote> {
     totalTTC,
     notes,
     depositRequired,
+    depositType,
     depositPercentage,
+    depositAmount,
     validityDays,
     deliveryDelay,
     deletedAt,
@@ -3021,7 +3099,9 @@ class Quote extends DataClass implements Insertable<Quote> {
           other.totalTTC == this.totalTTC &&
           other.notes == this.notes &&
           other.depositRequired == this.depositRequired &&
+          other.depositType == this.depositType &&
           other.depositPercentage == this.depositPercentage &&
+          other.depositAmount == this.depositAmount &&
           other.validityDays == this.validityDays &&
           other.deliveryDelay == this.deliveryDelay &&
           other.deletedAt == this.deletedAt &&
@@ -3041,7 +3121,9 @@ class QuotesCompanion extends UpdateCompanion<Quote> {
   final Value<double> totalTTC;
   final Value<String?> notes;
   final Value<bool> depositRequired;
+  final Value<String> depositType;
   final Value<double> depositPercentage;
+  final Value<double> depositAmount;
   final Value<int> validityDays;
   final Value<String?> deliveryDelay;
   final Value<DateTime?> deletedAt;
@@ -3059,7 +3141,9 @@ class QuotesCompanion extends UpdateCompanion<Quote> {
     this.totalTTC = const Value.absent(),
     this.notes = const Value.absent(),
     this.depositRequired = const Value.absent(),
+    this.depositType = const Value.absent(),
     this.depositPercentage = const Value.absent(),
+    this.depositAmount = const Value.absent(),
     this.validityDays = const Value.absent(),
     this.deliveryDelay = const Value.absent(),
     this.deletedAt = const Value.absent(),
@@ -3078,7 +3162,9 @@ class QuotesCompanion extends UpdateCompanion<Quote> {
     this.totalTTC = const Value.absent(),
     this.notes = const Value.absent(),
     this.depositRequired = const Value.absent(),
+    this.depositType = const Value.absent(),
     this.depositPercentage = const Value.absent(),
+    this.depositAmount = const Value.absent(),
     this.validityDays = const Value.absent(),
     this.deliveryDelay = const Value.absent(),
     this.deletedAt = const Value.absent(),
@@ -3102,7 +3188,9 @@ class QuotesCompanion extends UpdateCompanion<Quote> {
     Expression<double>? totalTTC,
     Expression<String>? notes,
     Expression<bool>? depositRequired,
+    Expression<String>? depositType,
     Expression<double>? depositPercentage,
+    Expression<double>? depositAmount,
     Expression<int>? validityDays,
     Expression<String>? deliveryDelay,
     Expression<DateTime>? deletedAt,
@@ -3121,7 +3209,9 @@ class QuotesCompanion extends UpdateCompanion<Quote> {
       if (totalTTC != null) 'total_ttc': totalTTC,
       if (notes != null) 'notes': notes,
       if (depositRequired != null) 'deposit_required': depositRequired,
+      if (depositType != null) 'deposit_type': depositType,
       if (depositPercentage != null) 'deposit_percentage': depositPercentage,
+      if (depositAmount != null) 'deposit_amount': depositAmount,
       if (validityDays != null) 'validity_days': validityDays,
       if (deliveryDelay != null) 'delivery_delay': deliveryDelay,
       if (deletedAt != null) 'deleted_at': deletedAt,
@@ -3142,7 +3232,9 @@ class QuotesCompanion extends UpdateCompanion<Quote> {
     Value<double>? totalTTC,
     Value<String?>? notes,
     Value<bool>? depositRequired,
+    Value<String>? depositType,
     Value<double>? depositPercentage,
+    Value<double>? depositAmount,
     Value<int>? validityDays,
     Value<String?>? deliveryDelay,
     Value<DateTime?>? deletedAt,
@@ -3161,7 +3253,9 @@ class QuotesCompanion extends UpdateCompanion<Quote> {
       totalTTC: totalTTC ?? this.totalTTC,
       notes: notes ?? this.notes,
       depositRequired: depositRequired ?? this.depositRequired,
+      depositType: depositType ?? this.depositType,
       depositPercentage: depositPercentage ?? this.depositPercentage,
+      depositAmount: depositAmount ?? this.depositAmount,
       validityDays: validityDays ?? this.validityDays,
       deliveryDelay: deliveryDelay ?? this.deliveryDelay,
       deletedAt: deletedAt ?? this.deletedAt,
@@ -3206,8 +3300,14 @@ class QuotesCompanion extends UpdateCompanion<Quote> {
     if (depositRequired.present) {
       map['deposit_required'] = Variable<bool>(depositRequired.value);
     }
+    if (depositType.present) {
+      map['deposit_type'] = Variable<String>(depositType.value);
+    }
     if (depositPercentage.present) {
       map['deposit_percentage'] = Variable<double>(depositPercentage.value);
+    }
+    if (depositAmount.present) {
+      map['deposit_amount'] = Variable<double>(depositAmount.value);
     }
     if (validityDays.present) {
       map['validity_days'] = Variable<int>(validityDays.value);
@@ -3241,7 +3341,9 @@ class QuotesCompanion extends UpdateCompanion<Quote> {
           ..write('totalTTC: $totalTTC, ')
           ..write('notes: $notes, ')
           ..write('depositRequired: $depositRequired, ')
+          ..write('depositType: $depositType, ')
           ..write('depositPercentage: $depositPercentage, ')
+          ..write('depositAmount: $depositAmount, ')
           ..write('validityDays: $validityDays, ')
           ..write('deliveryDelay: $deliveryDelay, ')
           ..write('deletedAt: $deletedAt, ')
@@ -6004,7 +6106,9 @@ typedef $$QuotesTableCreateCompanionBuilder =
       Value<double> totalTTC,
       Value<String?> notes,
       Value<bool> depositRequired,
+      Value<String> depositType,
       Value<double> depositPercentage,
+      Value<double> depositAmount,
       Value<int> validityDays,
       Value<String?> deliveryDelay,
       Value<DateTime?> deletedAt,
@@ -6024,7 +6128,9 @@ typedef $$QuotesTableUpdateCompanionBuilder =
       Value<double> totalTTC,
       Value<String?> notes,
       Value<bool> depositRequired,
+      Value<String> depositType,
       Value<double> depositPercentage,
+      Value<double> depositAmount,
       Value<int> validityDays,
       Value<String?> deliveryDelay,
       Value<DateTime?> deletedAt,
@@ -6143,8 +6249,18 @@ class $$QuotesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get depositType => $composableBuilder(
+    column: $table.depositType,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<double> get depositPercentage => $composableBuilder(
     column: $table.depositPercentage,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get depositAmount => $composableBuilder(
+    column: $table.depositAmount,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6299,8 +6415,18 @@ class $$QuotesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get depositType => $composableBuilder(
+    column: $table.depositType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<double> get depositPercentage => $composableBuilder(
     column: $table.depositPercentage,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get depositAmount => $composableBuilder(
+    column: $table.depositAmount,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -6416,8 +6542,18 @@ class $$QuotesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get depositType => $composableBuilder(
+    column: $table.depositType,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<double> get depositPercentage => $composableBuilder(
     column: $table.depositPercentage,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get depositAmount => $composableBuilder(
+    column: $table.depositAmount,
     builder: (column) => column,
   );
 
@@ -6555,7 +6691,9 @@ class $$QuotesTableTableManager
                 Value<double> totalTTC = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<bool> depositRequired = const Value.absent(),
+                Value<String> depositType = const Value.absent(),
                 Value<double> depositPercentage = const Value.absent(),
+                Value<double> depositAmount = const Value.absent(),
                 Value<int> validityDays = const Value.absent(),
                 Value<String?> deliveryDelay = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
@@ -6573,7 +6711,9 @@ class $$QuotesTableTableManager
                 totalTTC: totalTTC,
                 notes: notes,
                 depositRequired: depositRequired,
+                depositType: depositType,
                 depositPercentage: depositPercentage,
+                depositAmount: depositAmount,
                 validityDays: validityDays,
                 deliveryDelay: deliveryDelay,
                 deletedAt: deletedAt,
@@ -6593,7 +6733,9 @@ class $$QuotesTableTableManager
                 Value<double> totalTTC = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<bool> depositRequired = const Value.absent(),
+                Value<String> depositType = const Value.absent(),
                 Value<double> depositPercentage = const Value.absent(),
+                Value<double> depositAmount = const Value.absent(),
                 Value<int> validityDays = const Value.absent(),
                 Value<String?> deliveryDelay = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
@@ -6611,7 +6753,9 @@ class $$QuotesTableTableManager
                 totalTTC: totalTTC,
                 notes: notes,
                 depositRequired: depositRequired,
+                depositType: depositType,
                 depositPercentage: depositPercentage,
+                depositAmount: depositAmount,
                 validityDays: validityDays,
                 deliveryDelay: deliveryDelay,
                 deletedAt: deletedAt,

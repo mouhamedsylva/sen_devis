@@ -72,7 +72,9 @@ class Quotes extends Table {
   
   // Nouvelles conditions du devis
   BoolColumn get depositRequired => boolean().named('deposit_required').withDefault(const Constant(true))();
+  TextColumn get depositType => text().named('deposit_type').withDefault(const Constant('percentage'))(); // 'percentage' ou 'amount'
   RealColumn get depositPercentage => real().named('deposit_percentage').withDefault(const Constant(40.0))();
+  RealColumn get depositAmount => real().named('deposit_amount').withDefault(const Constant(0.0))();
   IntColumn get validityDays => integer().named('validity_days').withDefault(const Constant(30))();
   TextColumn get deliveryDelay => text().named('delivery_delay').nullable()();
   

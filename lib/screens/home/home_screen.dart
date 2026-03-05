@@ -395,20 +395,24 @@ class _HomeScreenState extends State<HomeScreen>
                 children: [
                   Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.3),
-                            width: 1.5,
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.2),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
-                        ),
-                        child: const Icon(
-                          Icons.business_rounded,
-                          color: Colors.white,
-                          size: 28,
+                          child: Image.asset(
+                            'assets/icons/logo.png',
+                            width: 48,
+                            height: 48,
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -485,10 +489,10 @@ class _HomeScreenState extends State<HomeScreen>
               ),
               child: CircleAvatar(
                 radius: 22,
-                backgroundColor: Colors.green.shade300,
+                backgroundColor: Colors.white,
                 child: const Icon(
                   Icons.person_rounded,
-                  color: Colors.white,
+                  color: Color(0xFF1A7B7B),
                   size: 26,
                 ),
               ),
