@@ -12,6 +12,7 @@ import 'providers/quote_provider.dart';
 import 'providers/connectivity_provider.dart';
 import 'providers/locale_provider.dart';
 import 'providers/theme_provider.dart';
+import 'providers/trash_provider.dart';
 
 // Theme
 import 'core/theme/app_theme.dart';
@@ -27,6 +28,7 @@ import 'screens/company/company_settings_screen.dart';
 import 'screens/settings/settings_screen.dart';
 import 'screens/clients/clients_list_screen.dart';
 import 'screens/clients/client_form_screen.dart';
+import 'screens/clients/client_detail_screen.dart';
 import 'screens/clients/import_contacts_screen.dart';
 import 'screens/products/products_list_screen.dart';
 import 'screens/products/product_form_screen.dart';
@@ -35,6 +37,7 @@ import 'screens/quotes/quote_form_screen.dart';
 import 'screens/quotes/quote_preview_screen.dart';
 import 'screens/settings/language_selection_screen.dart';
 import 'screens/settings/change_password_screen.dart';
+import 'screens/trash/trash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -63,6 +66,7 @@ class SenDevis extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => QuoteProvider()),
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => TrashProvider()),
       ],
       child: Consumer2<LocaleProvider, ThemeProvider>(
         builder: (context, localeProvider, themeProvider, child) => MaterialApp(
@@ -102,6 +106,7 @@ class SenDevis extends StatelessWidget {
             ClientsListScreen.routeName: (context) => const ClientsListScreen(),
             ClientFormScreen.routeName: (context) => const ClientFormScreen(),
             '/import-contacts': (context) => const ImportContactsScreen(),
+            ClientDetailScreen.routeName: (context) => const ClientDetailScreen(),
             ProductsListScreen.routeName: (context) =>
                 const ProductsListScreen(),
             ProductFormScreen.routeName: (context) => const ProductFormScreen(),
@@ -112,6 +117,7 @@ class SenDevis extends StatelessWidget {
             LanguageSelectionScreen.routeName: (context) =>
                 const LanguageSelectionScreen(),
             '/change-password': (context) => const ChangePasswordScreen(),
+            '/trash': (context) => const TrashScreen(),
           },
         ),
       ),

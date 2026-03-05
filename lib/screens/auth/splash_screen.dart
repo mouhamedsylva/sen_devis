@@ -138,7 +138,9 @@ class _SplashScreenState extends State<SplashScreen>
     if (!mounted) return;
 
     if (isAuthenticated) {
-      Navigator.of(context).pushReplacementNamed(HomeScreen.routeName);
+      // Rediriger vers la dernière route visitée
+      final lastRoute = authProvider.lastRoute;
+      Navigator.of(context).pushReplacementNamed(lastRoute);
     } else {
       Navigator.of(context).pushReplacementNamed(LoginScreen.routeName);
     }

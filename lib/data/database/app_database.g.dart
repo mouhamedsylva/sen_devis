@@ -1861,6 +1861,17 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
     requiredDuringInsert: false,
     defaultValue: const Constant(18.0),
   );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -1890,6 +1901,7 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
     name,
     unitPrice,
     vatRate,
+    deletedAt,
     createdAt,
     updatedAt,
   ];
@@ -1938,6 +1950,12 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
         vatRate.isAcceptableOrUnknown(data['vat_rate']!, _vatRateMeta),
       );
     }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -1983,6 +2001,10 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
         DriftSqlType.double,
         data['${effectivePrefix}vat_rate'],
       )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -2006,6 +2028,7 @@ class Product extends DataClass implements Insertable<Product> {
   final String name;
   final double unitPrice;
   final double vatRate;
+  final DateTime? deletedAt;
   final DateTime createdAt;
   final DateTime updatedAt;
   const Product({
@@ -2014,6 +2037,7 @@ class Product extends DataClass implements Insertable<Product> {
     required this.name,
     required this.unitPrice,
     required this.vatRate,
+    this.deletedAt,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -2025,6 +2049,9 @@ class Product extends DataClass implements Insertable<Product> {
     map['name'] = Variable<String>(name);
     map['unit_price'] = Variable<double>(unitPrice);
     map['vat_rate'] = Variable<double>(vatRate);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -2037,6 +2064,9 @@ class Product extends DataClass implements Insertable<Product> {
       name: Value(name),
       unitPrice: Value(unitPrice),
       vatRate: Value(vatRate),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -2053,6 +2083,7 @@ class Product extends DataClass implements Insertable<Product> {
       name: serializer.fromJson<String>(json['name']),
       unitPrice: serializer.fromJson<double>(json['unitPrice']),
       vatRate: serializer.fromJson<double>(json['vatRate']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -2066,6 +2097,7 @@ class Product extends DataClass implements Insertable<Product> {
       'name': serializer.toJson<String>(name),
       'unitPrice': serializer.toJson<double>(unitPrice),
       'vatRate': serializer.toJson<double>(vatRate),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -2077,6 +2109,7 @@ class Product extends DataClass implements Insertable<Product> {
     String? name,
     double? unitPrice,
     double? vatRate,
+    Value<DateTime?> deletedAt = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => Product(
@@ -2085,6 +2118,7 @@ class Product extends DataClass implements Insertable<Product> {
     name: name ?? this.name,
     unitPrice: unitPrice ?? this.unitPrice,
     vatRate: vatRate ?? this.vatRate,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -2095,6 +2129,7 @@ class Product extends DataClass implements Insertable<Product> {
       name: data.name.present ? data.name.value : this.name,
       unitPrice: data.unitPrice.present ? data.unitPrice.value : this.unitPrice,
       vatRate: data.vatRate.present ? data.vatRate.value : this.vatRate,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -2108,6 +2143,7 @@ class Product extends DataClass implements Insertable<Product> {
           ..write('name: $name, ')
           ..write('unitPrice: $unitPrice, ')
           ..write('vatRate: $vatRate, ')
+          ..write('deletedAt: $deletedAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -2115,8 +2151,16 @@ class Product extends DataClass implements Insertable<Product> {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, userId, name, unitPrice, vatRate, createdAt, updatedAt);
+  int get hashCode => Object.hash(
+    id,
+    userId,
+    name,
+    unitPrice,
+    vatRate,
+    deletedAt,
+    createdAt,
+    updatedAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2126,6 +2170,7 @@ class Product extends DataClass implements Insertable<Product> {
           other.name == this.name &&
           other.unitPrice == this.unitPrice &&
           other.vatRate == this.vatRate &&
+          other.deletedAt == this.deletedAt &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -2136,6 +2181,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
   final Value<String> name;
   final Value<double> unitPrice;
   final Value<double> vatRate;
+  final Value<DateTime?> deletedAt;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   const ProductsCompanion({
@@ -2144,6 +2190,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     this.name = const Value.absent(),
     this.unitPrice = const Value.absent(),
     this.vatRate = const Value.absent(),
+    this.deletedAt = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
@@ -2153,6 +2200,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     required String name,
     required double unitPrice,
     this.vatRate = const Value.absent(),
+    this.deletedAt = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
   }) : userId = Value(userId),
@@ -2166,6 +2214,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     Expression<String>? name,
     Expression<double>? unitPrice,
     Expression<double>? vatRate,
+    Expression<DateTime>? deletedAt,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
   }) {
@@ -2175,6 +2224,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       if (name != null) 'name': name,
       if (unitPrice != null) 'unit_price': unitPrice,
       if (vatRate != null) 'vat_rate': vatRate,
+      if (deletedAt != null) 'deleted_at': deletedAt,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
@@ -2186,6 +2236,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     Value<String>? name,
     Value<double>? unitPrice,
     Value<double>? vatRate,
+    Value<DateTime?>? deletedAt,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
   }) {
@@ -2195,6 +2246,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       name: name ?? this.name,
       unitPrice: unitPrice ?? this.unitPrice,
       vatRate: vatRate ?? this.vatRate,
+      deletedAt: deletedAt ?? this.deletedAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -2218,6 +2270,9 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     if (vatRate.present) {
       map['vat_rate'] = Variable<double>(vatRate.value);
     }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -2235,6 +2290,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
           ..write('name: $name, ')
           ..write('unitPrice: $unitPrice, ')
           ..write('vatRate: $vatRate, ')
+          ..write('deletedAt: $deletedAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -2364,6 +2420,68 @@ class $QuotesTable extends Quotes with TableInfo<$QuotesTable, Quote> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _depositRequiredMeta = const VerificationMeta(
+    'depositRequired',
+  );
+  @override
+  late final GeneratedColumn<bool> depositRequired = GeneratedColumn<bool>(
+    'deposit_required',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deposit_required" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _depositPercentageMeta = const VerificationMeta(
+    'depositPercentage',
+  );
+  @override
+  late final GeneratedColumn<double> depositPercentage =
+      GeneratedColumn<double>(
+        'deposit_percentage',
+        aliasedName,
+        false,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(40.0),
+      );
+  static const VerificationMeta _validityDaysMeta = const VerificationMeta(
+    'validityDays',
+  );
+  @override
+  late final GeneratedColumn<int> validityDays = GeneratedColumn<int>(
+    'validity_days',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(30),
+  );
+  static const VerificationMeta _deliveryDelayMeta = const VerificationMeta(
+    'deliveryDelay',
+  );
+  @override
+  late final GeneratedColumn<String> deliveryDelay = GeneratedColumn<String>(
+    'delivery_delay',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -2398,6 +2516,11 @@ class $QuotesTable extends Quotes with TableInfo<$QuotesTable, Quote> {
     totalVAT,
     totalTTC,
     notes,
+    depositRequired,
+    depositPercentage,
+    validityDays,
+    deliveryDelay,
+    deletedAt,
     createdAt,
     updatedAt,
   ];
@@ -2481,6 +2604,48 @@ class $QuotesTable extends Quotes with TableInfo<$QuotesTable, Quote> {
         notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
       );
     }
+    if (data.containsKey('deposit_required')) {
+      context.handle(
+        _depositRequiredMeta,
+        depositRequired.isAcceptableOrUnknown(
+          data['deposit_required']!,
+          _depositRequiredMeta,
+        ),
+      );
+    }
+    if (data.containsKey('deposit_percentage')) {
+      context.handle(
+        _depositPercentageMeta,
+        depositPercentage.isAcceptableOrUnknown(
+          data['deposit_percentage']!,
+          _depositPercentageMeta,
+        ),
+      );
+    }
+    if (data.containsKey('validity_days')) {
+      context.handle(
+        _validityDaysMeta,
+        validityDays.isAcceptableOrUnknown(
+          data['validity_days']!,
+          _validityDaysMeta,
+        ),
+      );
+    }
+    if (data.containsKey('delivery_delay')) {
+      context.handle(
+        _deliveryDelayMeta,
+        deliveryDelay.isAcceptableOrUnknown(
+          data['delivery_delay']!,
+          _deliveryDelayMeta,
+        ),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -2546,6 +2711,26 @@ class $QuotesTable extends Quotes with TableInfo<$QuotesTable, Quote> {
         DriftSqlType.string,
         data['${effectivePrefix}notes'],
       ),
+      depositRequired: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deposit_required'],
+      )!,
+      depositPercentage: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}deposit_percentage'],
+      )!,
+      validityDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}validity_days'],
+      )!,
+      deliveryDelay: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}delivery_delay'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -2574,6 +2759,11 @@ class Quote extends DataClass implements Insertable<Quote> {
   final double totalVAT;
   final double totalTTC;
   final String? notes;
+  final bool depositRequired;
+  final double depositPercentage;
+  final int validityDays;
+  final String? deliveryDelay;
+  final DateTime? deletedAt;
   final DateTime createdAt;
   final DateTime updatedAt;
   const Quote({
@@ -2587,6 +2777,11 @@ class Quote extends DataClass implements Insertable<Quote> {
     required this.totalVAT,
     required this.totalTTC,
     this.notes,
+    required this.depositRequired,
+    required this.depositPercentage,
+    required this.validityDays,
+    this.deliveryDelay,
+    this.deletedAt,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -2604,6 +2799,15 @@ class Quote extends DataClass implements Insertable<Quote> {
     map['total_ttc'] = Variable<double>(totalTTC);
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
+    }
+    map['deposit_required'] = Variable<bool>(depositRequired);
+    map['deposit_percentage'] = Variable<double>(depositPercentage);
+    map['validity_days'] = Variable<int>(validityDays);
+    if (!nullToAbsent || deliveryDelay != null) {
+      map['delivery_delay'] = Variable<String>(deliveryDelay);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -2624,6 +2828,15 @@ class Quote extends DataClass implements Insertable<Quote> {
       notes: notes == null && nullToAbsent
           ? const Value.absent()
           : Value(notes),
+      depositRequired: Value(depositRequired),
+      depositPercentage: Value(depositPercentage),
+      validityDays: Value(validityDays),
+      deliveryDelay: deliveryDelay == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deliveryDelay),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -2645,6 +2858,11 @@ class Quote extends DataClass implements Insertable<Quote> {
       totalVAT: serializer.fromJson<double>(json['totalVAT']),
       totalTTC: serializer.fromJson<double>(json['totalTTC']),
       notes: serializer.fromJson<String?>(json['notes']),
+      depositRequired: serializer.fromJson<bool>(json['depositRequired']),
+      depositPercentage: serializer.fromJson<double>(json['depositPercentage']),
+      validityDays: serializer.fromJson<int>(json['validityDays']),
+      deliveryDelay: serializer.fromJson<String?>(json['deliveryDelay']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -2663,6 +2881,11 @@ class Quote extends DataClass implements Insertable<Quote> {
       'totalVAT': serializer.toJson<double>(totalVAT),
       'totalTTC': serializer.toJson<double>(totalTTC),
       'notes': serializer.toJson<String?>(notes),
+      'depositRequired': serializer.toJson<bool>(depositRequired),
+      'depositPercentage': serializer.toJson<double>(depositPercentage),
+      'validityDays': serializer.toJson<int>(validityDays),
+      'deliveryDelay': serializer.toJson<String?>(deliveryDelay),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -2679,6 +2902,11 @@ class Quote extends DataClass implements Insertable<Quote> {
     double? totalVAT,
     double? totalTTC,
     Value<String?> notes = const Value.absent(),
+    bool? depositRequired,
+    double? depositPercentage,
+    int? validityDays,
+    Value<String?> deliveryDelay = const Value.absent(),
+    Value<DateTime?> deletedAt = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => Quote(
@@ -2692,6 +2920,13 @@ class Quote extends DataClass implements Insertable<Quote> {
     totalVAT: totalVAT ?? this.totalVAT,
     totalTTC: totalTTC ?? this.totalTTC,
     notes: notes.present ? notes.value : this.notes,
+    depositRequired: depositRequired ?? this.depositRequired,
+    depositPercentage: depositPercentage ?? this.depositPercentage,
+    validityDays: validityDays ?? this.validityDays,
+    deliveryDelay: deliveryDelay.present
+        ? deliveryDelay.value
+        : this.deliveryDelay,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -2709,6 +2944,19 @@ class Quote extends DataClass implements Insertable<Quote> {
       totalVAT: data.totalVAT.present ? data.totalVAT.value : this.totalVAT,
       totalTTC: data.totalTTC.present ? data.totalTTC.value : this.totalTTC,
       notes: data.notes.present ? data.notes.value : this.notes,
+      depositRequired: data.depositRequired.present
+          ? data.depositRequired.value
+          : this.depositRequired,
+      depositPercentage: data.depositPercentage.present
+          ? data.depositPercentage.value
+          : this.depositPercentage,
+      validityDays: data.validityDays.present
+          ? data.validityDays.value
+          : this.validityDays,
+      deliveryDelay: data.deliveryDelay.present
+          ? data.deliveryDelay.value
+          : this.deliveryDelay,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -2727,6 +2975,11 @@ class Quote extends DataClass implements Insertable<Quote> {
           ..write('totalVAT: $totalVAT, ')
           ..write('totalTTC: $totalTTC, ')
           ..write('notes: $notes, ')
+          ..write('depositRequired: $depositRequired, ')
+          ..write('depositPercentage: $depositPercentage, ')
+          ..write('validityDays: $validityDays, ')
+          ..write('deliveryDelay: $deliveryDelay, ')
+          ..write('deletedAt: $deletedAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -2745,6 +2998,11 @@ class Quote extends DataClass implements Insertable<Quote> {
     totalVAT,
     totalTTC,
     notes,
+    depositRequired,
+    depositPercentage,
+    validityDays,
+    deliveryDelay,
+    deletedAt,
     createdAt,
     updatedAt,
   );
@@ -2762,6 +3020,11 @@ class Quote extends DataClass implements Insertable<Quote> {
           other.totalVAT == this.totalVAT &&
           other.totalTTC == this.totalTTC &&
           other.notes == this.notes &&
+          other.depositRequired == this.depositRequired &&
+          other.depositPercentage == this.depositPercentage &&
+          other.validityDays == this.validityDays &&
+          other.deliveryDelay == this.deliveryDelay &&
+          other.deletedAt == this.deletedAt &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -2777,6 +3040,11 @@ class QuotesCompanion extends UpdateCompanion<Quote> {
   final Value<double> totalVAT;
   final Value<double> totalTTC;
   final Value<String?> notes;
+  final Value<bool> depositRequired;
+  final Value<double> depositPercentage;
+  final Value<int> validityDays;
+  final Value<String?> deliveryDelay;
+  final Value<DateTime?> deletedAt;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   const QuotesCompanion({
@@ -2790,6 +3058,11 @@ class QuotesCompanion extends UpdateCompanion<Quote> {
     this.totalVAT = const Value.absent(),
     this.totalTTC = const Value.absent(),
     this.notes = const Value.absent(),
+    this.depositRequired = const Value.absent(),
+    this.depositPercentage = const Value.absent(),
+    this.validityDays = const Value.absent(),
+    this.deliveryDelay = const Value.absent(),
+    this.deletedAt = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
@@ -2804,6 +3077,11 @@ class QuotesCompanion extends UpdateCompanion<Quote> {
     this.totalVAT = const Value.absent(),
     this.totalTTC = const Value.absent(),
     this.notes = const Value.absent(),
+    this.depositRequired = const Value.absent(),
+    this.depositPercentage = const Value.absent(),
+    this.validityDays = const Value.absent(),
+    this.deliveryDelay = const Value.absent(),
+    this.deletedAt = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
   }) : userId = Value(userId),
@@ -2823,6 +3101,11 @@ class QuotesCompanion extends UpdateCompanion<Quote> {
     Expression<double>? totalVAT,
     Expression<double>? totalTTC,
     Expression<String>? notes,
+    Expression<bool>? depositRequired,
+    Expression<double>? depositPercentage,
+    Expression<int>? validityDays,
+    Expression<String>? deliveryDelay,
+    Expression<DateTime>? deletedAt,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
   }) {
@@ -2837,6 +3120,11 @@ class QuotesCompanion extends UpdateCompanion<Quote> {
       if (totalVAT != null) 'total_vat': totalVAT,
       if (totalTTC != null) 'total_ttc': totalTTC,
       if (notes != null) 'notes': notes,
+      if (depositRequired != null) 'deposit_required': depositRequired,
+      if (depositPercentage != null) 'deposit_percentage': depositPercentage,
+      if (validityDays != null) 'validity_days': validityDays,
+      if (deliveryDelay != null) 'delivery_delay': deliveryDelay,
+      if (deletedAt != null) 'deleted_at': deletedAt,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
@@ -2853,6 +3141,11 @@ class QuotesCompanion extends UpdateCompanion<Quote> {
     Value<double>? totalVAT,
     Value<double>? totalTTC,
     Value<String?>? notes,
+    Value<bool>? depositRequired,
+    Value<double>? depositPercentage,
+    Value<int>? validityDays,
+    Value<String?>? deliveryDelay,
+    Value<DateTime?>? deletedAt,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
   }) {
@@ -2867,6 +3160,11 @@ class QuotesCompanion extends UpdateCompanion<Quote> {
       totalVAT: totalVAT ?? this.totalVAT,
       totalTTC: totalTTC ?? this.totalTTC,
       notes: notes ?? this.notes,
+      depositRequired: depositRequired ?? this.depositRequired,
+      depositPercentage: depositPercentage ?? this.depositPercentage,
+      validityDays: validityDays ?? this.validityDays,
+      deliveryDelay: deliveryDelay ?? this.deliveryDelay,
+      deletedAt: deletedAt ?? this.deletedAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -2905,6 +3203,21 @@ class QuotesCompanion extends UpdateCompanion<Quote> {
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
     }
+    if (depositRequired.present) {
+      map['deposit_required'] = Variable<bool>(depositRequired.value);
+    }
+    if (depositPercentage.present) {
+      map['deposit_percentage'] = Variable<double>(depositPercentage.value);
+    }
+    if (validityDays.present) {
+      map['validity_days'] = Variable<int>(validityDays.value);
+    }
+    if (deliveryDelay.present) {
+      map['delivery_delay'] = Variable<String>(deliveryDelay.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -2927,6 +3240,11 @@ class QuotesCompanion extends UpdateCompanion<Quote> {
           ..write('totalVAT: $totalVAT, ')
           ..write('totalTTC: $totalTTC, ')
           ..write('notes: $notes, ')
+          ..write('depositRequired: $depositRequired, ')
+          ..write('depositPercentage: $depositPercentage, ')
+          ..write('validityDays: $validityDays, ')
+          ..write('deliveryDelay: $deliveryDelay, ')
+          ..write('deletedAt: $deletedAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -5224,6 +5542,7 @@ typedef $$ProductsTableCreateCompanionBuilder =
       required String name,
       required double unitPrice,
       Value<double> vatRate,
+      Value<DateTime?> deletedAt,
       required DateTime createdAt,
       required DateTime updatedAt,
     });
@@ -5234,6 +5553,7 @@ typedef $$ProductsTableUpdateCompanionBuilder =
       Value<String> name,
       Value<double> unitPrice,
       Value<double> vatRate,
+      Value<DateTime?> deletedAt,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
     });
@@ -5305,6 +5625,11 @@ class $$ProductsTableFilterComposer
 
   ColumnFilters<double> get vatRate => $composableBuilder(
     column: $table.vatRate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5396,6 +5721,11 @@ class $$ProductsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -5450,6 +5780,9 @@ class $$ProductsTableAnnotationComposer
 
   GeneratedColumn<double> get vatRate =>
       $composableBuilder(column: $table.vatRate, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -5539,6 +5872,7 @@ class $$ProductsTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<double> unitPrice = const Value.absent(),
                 Value<double> vatRate = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
               }) => ProductsCompanion(
@@ -5547,6 +5881,7 @@ class $$ProductsTableTableManager
                 name: name,
                 unitPrice: unitPrice,
                 vatRate: vatRate,
+                deletedAt: deletedAt,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),
@@ -5557,6 +5892,7 @@ class $$ProductsTableTableManager
                 required String name,
                 required double unitPrice,
                 Value<double> vatRate = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
               }) => ProductsCompanion.insert(
@@ -5565,6 +5901,7 @@ class $$ProductsTableTableManager
                 name: name,
                 unitPrice: unitPrice,
                 vatRate: vatRate,
+                deletedAt: deletedAt,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),
@@ -5666,6 +6003,11 @@ typedef $$QuotesTableCreateCompanionBuilder =
       Value<double> totalVAT,
       Value<double> totalTTC,
       Value<String?> notes,
+      Value<bool> depositRequired,
+      Value<double> depositPercentage,
+      Value<int> validityDays,
+      Value<String?> deliveryDelay,
+      Value<DateTime?> deletedAt,
       required DateTime createdAt,
       required DateTime updatedAt,
     });
@@ -5681,6 +6023,11 @@ typedef $$QuotesTableUpdateCompanionBuilder =
       Value<double> totalVAT,
       Value<double> totalTTC,
       Value<String?> notes,
+      Value<bool> depositRequired,
+      Value<double> depositPercentage,
+      Value<int> validityDays,
+      Value<String?> deliveryDelay,
+      Value<DateTime?> deletedAt,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
     });
@@ -5788,6 +6135,31 @@ class $$QuotesTableFilterComposer
 
   ColumnFilters<String> get notes => $composableBuilder(
     column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get depositRequired => $composableBuilder(
+    column: $table.depositRequired,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get depositPercentage => $composableBuilder(
+    column: $table.depositPercentage,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get validityDays => $composableBuilder(
+    column: $table.validityDays,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deliveryDelay => $composableBuilder(
+    column: $table.deliveryDelay,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5922,6 +6294,31 @@ class $$QuotesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get depositRequired => $composableBuilder(
+    column: $table.depositRequired,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get depositPercentage => $composableBuilder(
+    column: $table.depositPercentage,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get validityDays => $composableBuilder(
+    column: $table.validityDays,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deliveryDelay => $composableBuilder(
+    column: $table.deliveryDelay,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -6013,6 +6410,29 @@ class $$QuotesTableAnnotationComposer
 
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<bool> get depositRequired => $composableBuilder(
+    column: $table.depositRequired,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get depositPercentage => $composableBuilder(
+    column: $table.depositPercentage,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get validityDays => $composableBuilder(
+    column: $table.validityDays,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get deliveryDelay => $composableBuilder(
+    column: $table.deliveryDelay,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -6134,6 +6554,11 @@ class $$QuotesTableTableManager
                 Value<double> totalVAT = const Value.absent(),
                 Value<double> totalTTC = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
+                Value<bool> depositRequired = const Value.absent(),
+                Value<double> depositPercentage = const Value.absent(),
+                Value<int> validityDays = const Value.absent(),
+                Value<String?> deliveryDelay = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
               }) => QuotesCompanion(
@@ -6147,6 +6572,11 @@ class $$QuotesTableTableManager
                 totalVAT: totalVAT,
                 totalTTC: totalTTC,
                 notes: notes,
+                depositRequired: depositRequired,
+                depositPercentage: depositPercentage,
+                validityDays: validityDays,
+                deliveryDelay: deliveryDelay,
+                deletedAt: deletedAt,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),
@@ -6162,6 +6592,11 @@ class $$QuotesTableTableManager
                 Value<double> totalVAT = const Value.absent(),
                 Value<double> totalTTC = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
+                Value<bool> depositRequired = const Value.absent(),
+                Value<double> depositPercentage = const Value.absent(),
+                Value<int> validityDays = const Value.absent(),
+                Value<String?> deliveryDelay = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
               }) => QuotesCompanion.insert(
@@ -6175,6 +6610,11 @@ class $$QuotesTableTableManager
                 totalVAT: totalVAT,
                 totalTTC: totalTTC,
                 notes: notes,
+                depositRequired: depositRequired,
+                depositPercentage: depositPercentage,
+                validityDays: validityDays,
+                deliveryDelay: deliveryDelay,
+                deletedAt: deletedAt,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),

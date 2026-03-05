@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../providers/auth_provider.dart';
 import '../../core/constants/strings.dart';
 import '../../core/constants/colors.dart';
@@ -52,6 +53,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final success = await authProvider.register(
       phone: _phoneController.text.trim(),
       password: _passwordController.text,
+      companyName: _companyController.text.trim(), // ✅ Passer le nom de l'entreprise
     );
 
     if (!mounted) return;
@@ -61,7 +63,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       await SuccessDialog.show(
         context: context,
         title: 'Inscription réussie !',
-        message: 'Votre compte a été créé avec succès. Configurez maintenant votre entreprise.',
+        message: 'Votre compte a été créé avec succès. Vous pouvez maintenant compléter les informations de votre entreprise.',
         autoDismiss: true,
         autoDismissDuration: const Duration(seconds: 2),
         onConfirm: () {
@@ -183,17 +185,65 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.stretch,
                                         children: [
-                                          _buildCompanyField(),
+                                          _buildCompanyField().animate().fadeIn(
+                                            delay: 500.ms,
+                                            duration: 500.ms,
+                                          ).slideY(
+                                            begin: 0.2,
+                                            end: 0,
+                                            delay: 500.ms,
+                                            duration: 500.ms,
+                                            curve: Curves.easeOutCubic,
+                                          ),
                                           const SizedBox(height: MobileConstants.spacingL),
-                                          _buildPhoneField(),
+                                          _buildPhoneField().animate().fadeIn(
+                                            delay: 600.ms,
+                                            duration: 500.ms,
+                                          ).slideY(
+                                            begin: 0.2,
+                                            end: 0,
+                                            delay: 600.ms,
+                                            duration: 500.ms,
+                                            curve: Curves.easeOutCubic,
+                                          ),
                                           const SizedBox(height: MobileConstants.spacingL),
-                                          _buildPasswordField(),
+                                          _buildPasswordField().animate().fadeIn(
+                                            delay: 700.ms,
+                                            duration: 500.ms,
+                                          ).slideY(
+                                            begin: 0.2,
+                                            end: 0,
+                                            delay: 700.ms,
+                                            duration: 500.ms,
+                                            curve: Curves.easeOutCubic,
+                                          ),
                                           const SizedBox(height: MobileConstants.spacingL),
-                                          _buildConfirmPasswordField(),
+                                          _buildConfirmPasswordField().animate().fadeIn(
+                                            delay: 800.ms,
+                                            duration: 500.ms,
+                                          ).slideY(
+                                            begin: 0.2,
+                                            end: 0,
+                                            delay: 800.ms,
+                                            duration: 500.ms,
+                                            curve: Curves.easeOutCubic,
+                                          ),
                                           const SizedBox(height: MobileConstants.spacingXl),
-                                          _buildRegisterButton(),
+                                          _buildRegisterButton().animate().fadeIn(
+                                            delay: 900.ms,
+                                            duration: 500.ms,
+                                          ).scale(
+                                            delay: 900.ms,
+                                            duration: 500.ms,
+                                            begin: const Offset(0.9, 0.9),
+                                            end: const Offset(1.0, 1.0),
+                                            curve: Curves.easeOutBack,
+                                          ),
                                           const SizedBox(height: 16),
-                                          _buildTermsText(),
+                                          _buildTermsText().animate().fadeIn(
+                                            delay: 1000.ms,
+                                            duration: 500.ms,
+                                          ),
                                         ],
                                       ),
                                     ),
@@ -264,6 +314,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
             size: 40,
             color: Color(0xFF0D5C63),
           ),
+        ).animate().scale(
+          duration: 600.ms,
+          curve: Curves.elasticOut,
+        ).shimmer(
+          delay: 400.ms,
+          duration: 1200.ms,
+          color: const Color(0xFF0D5C63).withOpacity(0.3),
         ),
         const SizedBox(height: 24),
         Text(
@@ -275,6 +332,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
             height: 1.2,
           ),
           textAlign: TextAlign.center,
+        ).animate().fadeIn(
+          delay: 200.ms,
+          duration: 600.ms,
+        ).slideY(
+          begin: 0.3,
+          end: 0,
+          delay: 200.ms,
+          duration: 600.ms,
+          curve: Curves.easeOutCubic,
         ),
         const SizedBox(height: 12),
         Padding(
@@ -288,6 +354,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
             textAlign: TextAlign.center,
           ),
+        ).animate().fadeIn(
+          delay: 400.ms,
+          duration: 600.ms,
+        ).slideY(
+          begin: 0.3,
+          end: 0,
+          delay: 400.ms,
+          duration: 600.ms,
+          curve: Curves.easeOutCubic,
         ),
       ],
     );
@@ -588,6 +663,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ],
       ),
+    ).animate().fadeIn(
+      delay: 1100.ms,
+      duration: 500.ms,
+    ).slideY(
+      begin: 0.2,
+      end: 0,
+      delay: 1100.ms,
+      duration: 500.ms,
+      curve: Curves.easeOutCubic,
     );
   }
 }

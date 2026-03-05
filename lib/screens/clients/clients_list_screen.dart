@@ -1,6 +1,7 @@
 import 'package:devis/widgets/custom_bottom_navbar.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/client_provider.dart';
 import '../../core/constants/strings.dart';
@@ -8,8 +9,10 @@ import '../../core/constants/colors.dart';
 import '../../core/utils/mobile_utils.dart';
 import '../../core/constants/mobile_constants.dart';
 import '../../core/localization/localization_extension.dart';
+import '../../core/mixins/route_aware_mixin.dart';
 import '../../widgets/loading_indicator.dart';
 import 'client_form_screen.dart';
+import 'client_detail_screen.dart';
 
 class ClientsListScreen extends StatefulWidget {
   static const String routeName = '/clients';
@@ -20,7 +23,10 @@ class ClientsListScreen extends StatefulWidget {
   State<ClientsListScreen> createState() => _ClientsListScreenState();
 }
 
-class _ClientsListScreenState extends State<ClientsListScreen> {
+class _ClientsListScreenState extends State<ClientsListScreen> with RouteAwareMixin {
+  @override
+  String get routeName => ClientsListScreen.routeName;
+  
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   int _selectedIndex = 3; // Clients tab
@@ -128,6 +134,136 @@ class _ClientsListScreenState extends State<ClientsListScreen> {
     });
   }
 
+  void _showSortOptions() {
+    MobileUtils.lightHaptic();
+    final clientProvider = context.read<ClientProvider>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final sheetBg = isDark ? const Color(0xFF2C2C2C) : Colors.white;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Container(
+              decoration: BoxDecoration(
+                color: sheetBg,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 12),
+                    Container(
+                      width: 40, height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Row(
+                        children: [
+                          Icon(Icons.sort, color: AppColors.primary, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Trier par',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: isDark ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    _buildSortTile(
+                      context: context,
+                      icon: Icons.sort_by_alpha,
+                      label: 'Nom A → Z',
+                      option: SortOption.nameAZ,
+                      current: clientProvider.sortOption,
+                      isDark: isDark,
+                      onTap: () {
+                        clientProvider.setSortOption(SortOption.nameAZ);
+                        setState(() {});
+                        Navigator.pop(context);
+                      },
+                    ),
+                    _buildSortTile(
+                      context: context,
+                      icon: Icons.calendar_today_outlined,
+                      label: 'Date d\'ajout (plus récent)',
+                      option: SortOption.dateAdded,
+                      current: clientProvider.sortOption,
+                      isDark: isDark,
+                      onTap: () {
+                        clientProvider.setSortOption(SortOption.dateAdded);
+                        setState(() {});
+                        Navigator.pop(context);
+                      },
+                    ),
+                    _buildSortTile(
+                      context: context,
+                      icon: Icons.description_outlined,
+                      label: 'Nombre de devis (décroissant)',
+                      option: SortOption.quoteCount,
+                      current: clientProvider.sortOption,
+                      isDark: isDark,
+                      onTap: () {
+                        clientProvider.setSortOption(SortOption.quoteCount);
+                        setState(() {});
+                        Navigator.pop(context);
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildSortTile({
+    required BuildContext context,
+    required IconData icon,
+    required String label,
+    required SortOption option,
+    required SortOption current,
+    required bool isDark,
+    required VoidCallback onTap,
+  }) {
+    final isSelected = current == option;
+    return ListTile(
+      leading: Icon(
+        icon,
+        color: isSelected ? AppColors.primary : Colors.grey,
+        size: 22,
+      ),
+      title: Text(
+        label,
+        style: TextStyle(
+          color: isSelected
+              ? AppColors.primary
+              : (isDark ? Colors.white : Colors.black87),
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+        ),
+      ),
+      trailing: isSelected
+          ? Icon(Icons.check_circle, color: AppColors.primary, size: 20)
+          : null,
+      onTap: onTap,
+    );
+  }
+
   void _onNavItemTapped(int index) {
     if (index == _selectedIndex) return;
     
@@ -169,8 +305,24 @@ class _ClientsListScreenState extends State<ClientsListScreen> {
       appBar: AppBar(
         backgroundColor: cardColor,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            color: Color(0xFF0D7C7E),
+            size: 20,
+          ),
+          onPressed: () {
+            MobileUtils.lightHaptic();
+            // Vérifier s'il y a une page précédente dans la pile
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              // Si pas de page précédente, aller à l'accueil
+              Navigator.of(context).pushReplacementNamed('/home');
+            }
+          },
+        ),
         centerTitle: true,
-        automaticallyImplyLeading: false,
         title: Text(
           context.tr('clients'),
           style: TextStyle(
@@ -180,6 +332,15 @@ class _ClientsListScreenState extends State<ClientsListScreen> {
           ),
         ),
         actions: [
+          // Bouton tri
+          IconButton(
+            onPressed: () {
+              MobileUtils.lightHaptic();
+              _showSortOptions();
+            },
+            icon: Icon(Icons.filter_list_rounded, color: primaryColor),
+            tooltip: 'Trier',
+          ),
           IconButton(
             onPressed: () async {
               MobileUtils.lightHaptic();
@@ -187,7 +348,6 @@ class _ClientsListScreenState extends State<ClientsListScreen> {
                 '/import-contacts',
               );
               if (result == true) {
-                // Recharger la liste des clients
                 final authProvider = context.read<AuthProvider>();
                 final userId = authProvider.userId;
                 if (userId != null) {
@@ -198,18 +358,6 @@ class _ClientsListScreenState extends State<ClientsListScreen> {
             icon: const Icon(Icons.file_upload_outlined),
             color: primaryColor,
             tooltip: context.tr('import_contacts'),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: CircleAvatar(
-              radius: 18,
-              backgroundColor: primaryColor.withOpacity(0.1),
-              child: Icon(
-                Icons.person,
-                color: primaryColor,
-                size: 20,
-              ),
-            ),
           ),
         ],
       ),
@@ -264,7 +412,7 @@ class _ClientsListScreenState extends State<ClientsListScreen> {
                     itemCount: clients.length,
                     itemBuilder: (context, index) {
                       final client = clients[index];
-                      return _buildClientCard(client);
+                      return _buildClientCard(client, index);
                     },
                   ),
                 );
@@ -361,6 +509,11 @@ class _ClientsListScreenState extends State<ClientsListScreen> {
             Icons.people_outline,
             size: 80,
             color: Colors.grey.shade300,
+          ).animate().scale(
+            duration: 600.ms,
+            curve: Curves.elasticOut,
+          ).fadeIn(
+            duration: 400.ms,
           ),
           const SizedBox(height: 16),
           Text(
@@ -372,6 +525,15 @@ class _ClientsListScreenState extends State<ClientsListScreen> {
               fontWeight: FontWeight.w600,
               color: Colors.grey.shade600,
             ),
+          ).animate().fadeIn(
+            delay: 200.ms,
+            duration: 400.ms,
+          ).slideY(
+            begin: 0.2,
+            end: 0,
+            delay: 200.ms,
+            duration: 400.ms,
+            curve: Curves.easeOutCubic,
           ),
           const SizedBox(height: 8),
           Text(
@@ -382,6 +544,15 @@ class _ClientsListScreenState extends State<ClientsListScreen> {
               fontSize: 14,
               color: Colors.grey.shade500,
             ),
+          ).animate().fadeIn(
+            delay: 400.ms,
+            duration: 400.ms,
+          ).slideY(
+            begin: 0.2,
+            end: 0,
+            delay: 400.ms,
+            duration: 400.ms,
+            curve: Curves.easeOutCubic,
           ),
           if (_searchQuery.isEmpty) ...[
             const SizedBox(height: 24),
@@ -405,6 +576,15 @@ class _ClientsListScreenState extends State<ClientsListScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
+            ).animate().fadeIn(
+              delay: 600.ms,
+              duration: 400.ms,
+            ).scale(
+              delay: 600.ms,
+              duration: 400.ms,
+              begin: const Offset(0.9, 0.9),
+              end: const Offset(1.0, 1.0),
+              curve: Curves.easeOutBack,
             ),
           ],
         ],
@@ -412,7 +592,7 @@ class _ClientsListScreenState extends State<ClientsListScreen> {
     );
   }
 
-  Widget _buildClientCard(client) {
+  Widget _buildClientCard(client, int index) {
     // Générer les initiales
     final nameParts = client.name.split(' ');
     final initials = nameParts.length >= 2
@@ -473,6 +653,14 @@ class _ClientsListScreenState extends State<ClientsListScreen> {
                       ),
                     ),
                   ),
+                ).animate().scale(
+                  delay: Duration(milliseconds: 50 * index),
+                  duration: 400.ms,
+                  curve: Curves.elasticOut,
+                ).shimmer(
+                  delay: Duration(milliseconds: 50 * index + 200),
+                  duration: 800.ms,
+                  color: colors[colorIndex].withOpacity(0.3),
                 ),
                 const SizedBox(width: 12),
                 
@@ -532,7 +720,13 @@ class _ClientsListScreenState extends State<ClientsListScreen> {
                   icon: Icons.visibility_outlined,
                   label: context.tr('view'),
                   color: const Color(0xFF1A7B7B),
-                  onTap: () => _navigateToEditClient(client.id!),
+                  onTap: () {
+                    MobileUtils.lightHaptic();
+                    Navigator.of(context).pushNamed(
+                      ClientDetailScreen.routeName,
+                      arguments: {'clientId': client.id},
+                    ).then((_) => _loadClients());
+                  },
                 ),
                 Container(
                   width: 1,
@@ -561,6 +755,15 @@ class _ClientsListScreenState extends State<ClientsListScreen> {
           ],
         ),
       ),
+    ).animate().fadeIn(
+      delay: Duration(milliseconds: 50 * index),
+      duration: 400.ms,
+    ).slideY(
+      begin: 0.2,
+      end: 0,
+      delay: Duration(milliseconds: 50 * index),
+      duration: 400.ms,
+      curve: Curves.easeOutCubic,
     );
   }
 

@@ -79,6 +79,10 @@ dependencies:
   
   # Préférences locales
   shared_preferences: ^2.2.2
+  
+  # Animations
+  flutter_animate: ^4.5.0
+  animations: ^2.0.11
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -98,6 +102,9 @@ dev_dependencies:
   # Drift code generation
   drift_dev: ^2.18.0
   build_runner: ^2.4.13
+  
+  # Génération des icônes d'application
+  flutter_launcher_icons: ^0.13.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -140,3 +147,30 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# Configuration des icônes d'application
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/AppIcons/appstore.png"
+  min_sdk_android: 21
+  
+  # Configuration pour Android
+  adaptive_icon_background: "#0D7C7E"
+  adaptive_icon_foreground: "assets/AppIcons/appstore.png"
+  
+  # Configuration pour iOS
+  remove_alpha_ios: true
+  
+  # # Configuration pour Web (optionnel)
+  # web:
+  #   generate: true
+  #   image_path: "assets/AppIcons/appstore.png"
+  #   background_color: "#0D7C7E"
+  #   theme_color: "#0D7C7E"
+  
+  # # Configuration pour Windows (optionnel)
+  # windows:
+  #   generate: true
+  #   image_path: "assets/AppIcons/appstore.png"
+  #   icon_size: 48

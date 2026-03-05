@@ -170,7 +170,18 @@ class _ImportContactsScreenState extends State<ImportContactsScreen> {
     return Scaffold(
       backgroundColor: scaffoldBg,
       appBar: AppBar(
-        title: const Text('Importer des contacts'),
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back_ios_new, // style iPhone
+            color: Colors.white,
+            size: 20, // plus petit comme sur iOS
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Importer des contacts',
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,

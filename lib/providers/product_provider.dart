@@ -92,18 +92,54 @@ class ProductProvider with ChangeNotifier {
     }
   }
 
-  // Supprimer un produit
+  // Supprimer un produit (soft delete)
   Future<bool> deleteProduct(int id) async {
     _errorMessage = null;
 
     try {
-      await _db.deleteProduct(id);
+      await _db.softDeleteProduct(id);
       _products.removeWhere((p) => p.id == id);
       
       notifyListeners();
       return true;
     } catch (e) {
       _errorMessage = 'Erreur lors de la suppression: ${e.toString()}';
+      notifyListeners();
+      return false;
+    }
+  }
+  
+  // Restaurer un produit
+  Future<bool> restoreProduct(int id) async {
+    _errorMessage = null;
+
+    try {
+      final success = await _db.restoreProduct(id);
+      if (success) {
+        // Recharger les produits pour inclure le produit restauré
+        final userId = _products.isNotEmpty ? _products.first.userId : null;
+        if (userId != null) {
+          await loadProducts(userId);
+        }
+      }
+      return success;
+    } catch (e) {
+      _errorMessage = 'Erreur lors de la restauration: ${e.toString()}';
+      notifyListeners();
+      return false;
+    }
+  }
+  
+  // Supprimer définitivement un produit
+  Future<bool> permanentlyDeleteProduct(int id) async {
+    _errorMessage = null;
+
+    try {
+      await _db.deleteProduct(id);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = 'Erreur lors de la suppression définitive: ${e.toString()}';
       notifyListeners();
       return false;
     }

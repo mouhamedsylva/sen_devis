@@ -18,10 +18,17 @@ class CompanyProvider with ChangeNotifier {
   // Charger les informations de l'entreprise
   Future<void> loadCompany(int userId) async {
     try {
+      debugPrint('🏢 COMPANY_PROVIDER: Loading company for userId: $userId');
       _company = await _db.getCompanyByUser(userId);
+      debugPrint('🏢 COMPANY_PROVIDER: Company loaded: ${_company != null}');
+      if (_company != null) {
+        debugPrint('🏢 COMPANY_PROVIDER: Company name: ${_company!.name}');
+        debugPrint('🏢 COMPANY_PROVIDER: Company phone: ${_company!.phone}');
+      }
       _isLoading = false;
       notifyListeners();
     } catch (e) {
+      debugPrint('🏢 COMPANY_PROVIDER: ERROR loading company: $e');
       _errorMessage = 'Erreur lors du chargement: ${e.toString()}';
       _isLoading = false;
       notifyListeners();

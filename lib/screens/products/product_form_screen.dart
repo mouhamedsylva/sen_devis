@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/product_provider.dart';
 import '../../providers/company_provider.dart';
@@ -81,8 +82,78 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
 
   Future<void> _pickImage() async {
     MobileUtils.lightHaptic();
+
+    // Sur Web : galerie uniquement
+    if (kIsWeb) {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+      if (image != null) {
+        final bytes = await image.readAsBytes();
+        setState(() => _productImageBytes = bytes);
+      }
+      return;
+    }
+
+    // Sur Mobile : afficher le choix Caméra / Galerie
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: _getCardBg(isDark),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(Icons.camera_alt_outlined, color: primaryColor),
+                title: Text(
+                  context.tr('take_photo'),
+                  style: TextStyle(
+                    color: isDark ? Colors.white : Colors.black87,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                onTap: () => Navigator.pop(context, ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined, color: primaryColor),
+                title: Text(
+                  context.tr('choose_from_gallery'),
+                  style: TextStyle(
+                    color: isDark ? Colors.white : Colors.black87,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                onTap: () => Navigator.pop(context, ImageSource.gallery),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (source == null) return;
+
     final XFile? image = await _picker.pickImage(
-      source: ImageSource.gallery,
+      source: source,
       maxWidth: 1024,
       maxHeight: 1024,
       imageQuality: 85,
@@ -90,9 +161,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
 
     if (image != null) {
       final bytes = await image.readAsBytes();
-      setState(() {
-        _productImageBytes = bytes;
-      });
+      setState(() => _productImageBytes = bytes);
     }
   }
 
@@ -178,10 +247,28 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              _buildProductNameField(),
+                              _buildProductNameField().animate().fadeIn(
+                                delay: 200.ms,
+                                duration: 500.ms,
+                              ).slideY(
+                                begin: 0.2,
+                                end: 0,
+                                delay: 200.ms,
+                                duration: 500.ms,
+                                curve: Curves.easeOutCubic,
+                              ),
                               const SizedBox(height: MobileConstants.spacingL),
                               
-                              _buildDescriptionField(),
+                              _buildDescriptionField().animate().fadeIn(
+                                delay: 300.ms,
+                                duration: 500.ms,
+                              ).slideY(
+                                begin: 0.2,
+                                end: 0,
+                                delay: 300.ms,
+                                duration: 500.ms,
+                                curve: Curves.easeOutCubic,
+                              ),
                               const SizedBox(height: MobileConstants.spacingL),
                               
                               Row(
@@ -194,13 +281,40 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                                     child: _buildTaxRateField(),
                                   ),
                                 ],
+                              ).animate().fadeIn(
+                                delay: 400.ms,
+                                duration: 500.ms,
+                              ).slideY(
+                                begin: 0.2,
+                                end: 0,
+                                delay: 400.ms,
+                                duration: 500.ms,
+                                curve: Curves.easeOutCubic,
                               ),
                               const SizedBox(height: MobileConstants.spacingL),
                               
-                              _buildTaxableToggle(),
+                              _buildTaxableToggle().animate().fadeIn(
+                                delay: 500.ms,
+                                duration: 500.ms,
+                              ).slideY(
+                                begin: 0.2,
+                                end: 0,
+                                delay: 500.ms,
+                                duration: 500.ms,
+                                curve: Curves.easeOutCubic,
+                              ),
                               const SizedBox(height: MobileConstants.spacingL),
                               
-                              _buildImageUpload(),
+                              _buildImageUpload().animate().fadeIn(
+                                delay: 600.ms,
+                                duration: 500.ms,
+                              ).slideY(
+                                begin: 0.2,
+                                end: 0,
+                                delay: 600.ms,
+                                duration: 500.ms,
+                                curve: Curves.easeOutCubic,
+                              ),
                               const SizedBox(height: 100), // Espace pour le bouton fixe
                             ],
                           ),

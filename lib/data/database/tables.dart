@@ -49,6 +49,10 @@ class Products extends Table {
   TextColumn get name => text()();
   RealColumn get unitPrice => real().named('unit_price')();
   RealColumn get vatRate => real().named('vat_rate').withDefault(const Constant(18.0))();
+  
+  // Soft delete
+  DateTimeColumn get deletedAt => dateTime().named('deleted_at').nullable()();
+  
   DateTimeColumn get createdAt => dateTime().named('created_at')();
   DateTimeColumn get updatedAt => dateTime().named('updated_at')();
 }
@@ -65,6 +69,16 @@ class Quotes extends Table {
   RealColumn get totalVAT => real().named('total_vat').withDefault(const Constant(0.0))();
   RealColumn get totalTTC => real().named('total_ttc').withDefault(const Constant(0.0))();
   TextColumn get notes => text().nullable()();
+  
+  // Nouvelles conditions du devis
+  BoolColumn get depositRequired => boolean().named('deposit_required').withDefault(const Constant(true))();
+  RealColumn get depositPercentage => real().named('deposit_percentage').withDefault(const Constant(40.0))();
+  IntColumn get validityDays => integer().named('validity_days').withDefault(const Constant(30))();
+  TextColumn get deliveryDelay => text().named('delivery_delay').nullable()();
+  
+  // Soft delete
+  DateTimeColumn get deletedAt => dateTime().named('deleted_at').nullable()();
+  
   DateTimeColumn get createdAt => dateTime().named('created_at')();
   DateTimeColumn get updatedAt => dateTime().named('updated_at')();
 }

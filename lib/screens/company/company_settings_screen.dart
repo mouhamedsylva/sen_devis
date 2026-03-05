@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/company_provider.dart';
 import '../../core/constants/strings.dart';
@@ -47,34 +48,34 @@ class _CompanySettingsScreenState extends State<CompanySettingsScreen> {
   Uint8List? _signatureBytes;
   String? _currentSignaturePath;
   bool _isFirstSetup = false;
+  bool _dataLoaded = false;
+  String? _prefilledCompanyName;
+  String? _prefilledCompanyPhone;
 
   @override
   void initState() {
     super.initState();
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadCompanyData();
-    });
+    // Ne pas charger les données ici, attendre didChangeDependencies
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final args =
-        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    _isFirstSetup = args?['isFirstSetup'] ?? false;
     
-    // Récupérer les données pré-remplies depuis l'inscription
-    if (_isFirstSetup && args != null) {
-      final companyName = args['companyName'] as String?;
-      final companyPhone = args['companyPhone'] as String?;
+    if (!_dataLoaded) {
+      _dataLoaded = true;
       
-      if (companyName != null && _nameController.text.isEmpty) {
-        _nameController.text = companyName;
+      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      _isFirstSetup = args?['isFirstSetup'] ?? false;
+      
+      // Récupérer les données pré-remplies depuis l'inscription
+      if (_isFirstSetup && args != null) {
+        _prefilledCompanyName = args['companyName'] as String?;
+        _prefilledCompanyPhone = args['companyPhone'] as String?;
       }
-      if (companyPhone != null && _phoneController.text.isEmpty) {
-        _phoneController.text = companyPhone;
-      }
+      
+      // Charger les données après avoir récupéré les arguments
+      _loadCompanyData();
     }
   }
 
@@ -82,11 +83,22 @@ class _CompanySettingsScreenState extends State<CompanySettingsScreen> {
     final authProvider = context.read<AuthProvider>();
     final userId = authProvider.userId;
 
+    debugPrint('🏢 COMPANY_SETTINGS: Loading data for userId: $userId');
+    debugPrint('🏢 COMPANY_SETTINGS: isFirstSetup: $_isFirstSetup');
+    debugPrint('🏢 COMPANY_SETTINGS: prefilledCompanyName: $_prefilledCompanyName');
+    debugPrint('🏢 COMPANY_SETTINGS: prefilledCompanyPhone: $_prefilledCompanyPhone');
+
     if (userId != null) {
       await context.read<CompanyProvider>().loadCompany(userId);
 
       final company = context.read<CompanyProvider>().company;
+      debugPrint('🏢 COMPANY_SETTINGS: Company loaded: ${company != null}');
+      
       if (company != null) {
+        debugPrint('🏢 COMPANY_SETTINGS: Company name: ${company.name}');
+        debugPrint('🏢 COMPANY_SETTINGS: Company phone: ${company.phone}');
+        
+        // Charger les données existantes de l'entreprise
         _nameController.text = company.name;
         _emailController.text = company.email ?? '';
         _phoneController.text = company.phone ?? '';
@@ -99,13 +111,31 @@ class _CompanySettingsScreenState extends State<CompanySettingsScreen> {
         _vatRateController.text = company.vatRate.toString();
         _currentLogoPath = company.logoPath;
         _currentSignaturePath = company.signaturePath;
+        
+        debugPrint('🏢 COMPANY_SETTINGS: Controllers filled with company data');
         setState(() {});
       } else {
-        // Valeurs par défaut si pas d'entreprise existante
+        debugPrint('🏢 COMPANY_SETTINGS: No company found, using prefilled data');
+        
+        // Pas d'entreprise existante - utiliser les données d'inscription si disponibles
+        if (_prefilledCompanyName != null && _nameController.text.isEmpty) {
+          _nameController.text = _prefilledCompanyName!;
+          debugPrint('🏢 COMPANY_SETTINGS: Set name from prefilled: $_prefilledCompanyName');
+        }
+        if (_prefilledCompanyPhone != null && _phoneController.text.isEmpty) {
+          _phoneController.text = _prefilledCompanyPhone!;
+          debugPrint('🏢 COMPANY_SETTINGS: Set phone from prefilled: $_prefilledCompanyPhone');
+        }
+        
+        // Valeur par défaut pour la TVA
         if (_vatRateController.text.isEmpty) {
           _vatRateController.text = '18.0';
         }
+        
+        setState(() {});
       }
+    } else {
+      debugPrint('🏢 COMPANY_SETTINGS: ERROR - userId is null!');
     }
   }
 
@@ -390,6 +420,15 @@ class _CompanySettingsScreenState extends State<CompanySettingsScreen> {
                               //   hint: 'FR 12 345678901',
                               // ),
                             ],
+                          ).animate().fadeIn(
+                            delay: 600.ms,
+                            duration: 500.ms,
+                          ).slideY(
+                            begin: 0.2,
+                            end: 0,
+                            delay: 600.ms,
+                            duration: 500.ms,
+                            curve: Curves.easeOutCubic,
                           ),
 
                           const SizedBox(height: 32),
@@ -422,6 +461,15 @@ class _CompanySettingsScreenState extends State<CompanySettingsScreen> {
                                 keyboardType: TextInputType.url,
                               ),
                             ],
+                          ).animate().fadeIn(
+                            delay: 700.ms,
+                            duration: 500.ms,
+                          ).slideY(
+                            begin: 0.2,
+                            end: 0,
+                            delay: 700.ms,
+                            duration: 500.ms,
+                            curve: Curves.easeOutCubic,
                           ),
 
                           const SizedBox(height: 32),
@@ -464,6 +512,15 @@ class _CompanySettingsScreenState extends State<CompanySettingsScreen> {
                                 validator: Validators.vatRate,
                               ),
                             ],
+                          ).animate().fadeIn(
+                            delay: 800.ms,
+                            duration: 500.ms,
+                          ).slideY(
+                            begin: 0.2,
+                            end: 0,
+                            delay: 800.ms,
+                            duration: 500.ms,
+                            curve: Curves.easeOutCubic,
                           ),
 
                           const SizedBox(height: 32),
@@ -474,6 +531,15 @@ class _CompanySettingsScreenState extends State<CompanySettingsScreen> {
                             children: [
                               _buildSignatureSection(),
                             ],
+                          ).animate().fadeIn(
+                            delay: 900.ms,
+                            duration: 500.ms,
+                          ).slideY(
+                            begin: 0.2,
+                            end: 0,
+                            delay: 900.ms,
+                            duration: 500.ms,
+                            curve: Curves.easeOutCubic,
                           ),
 
                           const SizedBox(height: 120), // Space for fixed button
@@ -532,6 +598,15 @@ class _CompanySettingsScreenState extends State<CompanySettingsScreen> {
                                 ),
                               ],
                             ),
+                          ).animate().fadeIn(
+                            delay: 1000.ms,
+                            duration: 500.ms,
+                          ).slideY(
+                            begin: 0.3,
+                            end: 0,
+                            delay: 1000.ms,
+                            duration: 500.ms,
+                            curve: Curves.easeOutBack,
                           ),
                         ),
                       ),
@@ -593,6 +668,11 @@ class _CompanySettingsScreenState extends State<CompanySettingsScreen> {
                           color: AppColors.primary.withOpacity(0.4),
                         )
                       : null,
+                ).animate().scale(
+                  duration: 600.ms,
+                  curve: Curves.elasticOut,
+                ).fadeIn(
+                  duration: 400.ms,
                 ),
                 Positioned(
                   bottom: -2,
@@ -620,6 +700,13 @@ class _CompanySettingsScreenState extends State<CompanySettingsScreen> {
                       size: 16,
                       color: Colors.white,
                     ),
+                  ).animate().scale(
+                    delay: 300.ms,
+                    duration: 400.ms,
+                    curve: Curves.easeOutBack,
+                  ).fadeIn(
+                    delay: 300.ms,
+                    duration: 300.ms,
                   ),
                 ),
               ],
@@ -633,6 +720,15 @@ class _CompanySettingsScreenState extends State<CompanySettingsScreen> {
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
+          ).animate().fadeIn(
+            delay: 200.ms,
+            duration: 400.ms,
+          ).slideY(
+            begin: 0.2,
+            end: 0,
+            delay: 200.ms,
+            duration: 400.ms,
+            curve: Curves.easeOutCubic,
           ),
           const SizedBox(height: 4),
           Text(
@@ -641,6 +737,15 @@ class _CompanySettingsScreenState extends State<CompanySettingsScreen> {
               color: AppColors.primary.withOpacity(0.6),
               fontSize: 14,
             ),
+          ).animate().fadeIn(
+            delay: 400.ms,
+            duration: 400.ms,
+          ).slideY(
+            begin: 0.2,
+            end: 0,
+            delay: 400.ms,
+            duration: 400.ms,
+            curve: Curves.easeOutCubic,
           ),
         ],
       ),

@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/quote_provider.dart';
 import '../../core/constants/strings.dart';
 import '../../core/constants/colors.dart';
 import '../../core/utils/currency_formatter.dart';
-import '../../core/utils/date_formatter.dart';
 import '../../core/utils/mobile_utils.dart';
-import '../../core/constants/mobile_constants.dart';
 import '../../core/localization/localization_extension.dart';
+import '../../core/mixins/route_aware_mixin.dart';
 import '../../data/database/app_database.dart';
-import '../../data/models/model_extensions.dart';
 import '../../widgets/loading_indicator.dart';
 import '../../widgets/custom_bottom_navbar.dart';
 import 'quote_form_screen.dart';
@@ -25,7 +24,10 @@ class QuotesListScreen extends StatefulWidget {
   State<QuotesListScreen> createState() => _QuotesListScreenState();
 }
 
-class _QuotesListScreenState extends State<QuotesListScreen> {
+class _QuotesListScreenState extends State<QuotesListScreen> with RouteAwareMixin {
+  @override
+  String get routeName => QuotesListScreen.routeName;
+  
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String _selectedFilter = 'all';
@@ -66,49 +68,252 @@ class _QuotesListScreenState extends State<QuotesListScreen> {
   }
 
   Future<void> _deleteQuote(int quoteId) async {
-    final confirm = await showDialog<bool>(
+    final success = await context.read<QuoteProvider>().deleteQuote(quoteId);
+
+    if (!mounted) return;
+
+    if (success) {
+      // ✅ Recharger la liste des devis après suppression
+      await _loadQuotes();
+      
+      MobileUtils.showMobileSnackBar(
+        context,
+        message: 'Devis supprimé avec succès',
+        backgroundColor: Colors.green,
+        icon: Icons.check_circle_outline,
+      );
+    } else {
+      MobileUtils.showMobileSnackBar(
+        context,
+        message: 'Erreur lors de la suppression',
+        backgroundColor: Colors.red,
+        icon: Icons.error_outline,
+      );
+    }
+  }
+
+  Future<bool?> _showDeleteConfirmation(int quoteId, String clientName) async {
+    final th = Theme.of(context);
+    final isDark = th.brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF2C2C2C) : Colors.white;
+    final textPrimary = isDark ? Colors.white : const Color(0xFF1F2937);
+    final textSecondary = isDark ? Colors.grey.shade400 : const Color(0xFF6B7280);
+
+    return await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirmer la suppression'),
-        content: const Text(AppStrings.confirmDelete),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text(AppStrings.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
+      barrierDismissible: true,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        backgroundColor: cardBg,
+        elevation: 8,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.delete_outline,
+                    color: Colors.red,
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Supprimer le devis ?',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Êtes-vous sûr de vouloir supprimer le devis de "$clientName" ? Cette action est irréversible.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: textSecondary,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 28),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          MobileUtils.lightHaptic();
+                          Navigator.of(context).pop(false);
+                        },
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          side: BorderSide(
+                            color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                            width: 1.5,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          'Annuler',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: textPrimary,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          MobileUtils.mediumHaptic();
+                          Navigator.of(context).pop(true);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'Supprimer',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            child: const Text(AppStrings.delete),
           ),
-        ],
+        ),
       ),
     );
+  }
 
-    if (confirm == true) {
-      final success = await context.read<QuoteProvider>().deleteQuote(quoteId);
+  void _showQuoteOptions(int quoteId, String clientName) {
+    final th = Theme.of(context);
+    final isDark = th.brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF2C2C2C) : Colors.white;
+    final textPrimary = isDark ? Colors.white : const Color(0xFF1F2937);
+    final textSecondary = isDark ? Colors.grey.shade400 : const Color(0xFF6B7280);
 
-      if (!mounted) return;
-
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(AppStrings.deleteSuccess),
-            backgroundColor: AppColors.success,
-          ),
-        );
-      } else {
-        final errorMessage = context.read<QuoteProvider>().errorMessage;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage ?? AppStrings.errorOccurred),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    }
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              clientName,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: textPrimary,
+              ),
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              leading: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2D7A8E).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.visibility_outlined,
+                  color: Color(0xFF2D7A8E),
+                  size: 20,
+                ),
+              ),
+              title: Text(
+                'Voir le devis',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: textPrimary,
+                ),
+              ),
+              onTap: () {
+                MobileUtils.lightHaptic();
+                Navigator.pop(context);
+                _navigateToQuotePreview(quoteId);
+              },
+            ),
+            ListTile(
+              leading: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.delete_outline,
+                  color: Colors.red,
+                  size: 20,
+                ),
+              ),
+              title: const Text(
+                'Supprimer',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.red,
+                ),
+              ),
+              onTap: () async {
+                MobileUtils.mediumHaptic();
+                Navigator.pop(context);
+                final confirm = await _showDeleteConfirmation(quoteId, clientName);
+                if (confirm == true) {
+                  await _deleteQuote(quoteId);
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _onSearchChanged(String query) {
@@ -195,8 +400,21 @@ class _QuotesListScreenState extends State<QuotesListScreen> {
         elevation: 0,
         backgroundColor: cardColor,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: titleColor),
-          onPressed: () => Navigator.of(context).pop(),
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            color: Color(0xFF0D7C7E),
+            size: 20,
+          ),
+          onPressed: () {
+            MobileUtils.lightHaptic();
+            // Vérifier s'il y a une page précédente dans la pile
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              // Si pas de page précédente, aller à l'accueil
+              Navigator.of(context).pushReplacementNamed('/home');
+            }
+          },
         ),
         title: Text(
           context.tr('quotes'),
@@ -206,12 +424,12 @@ class _QuotesListScreenState extends State<QuotesListScreen> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        centerTitle: false,
+        centerTitle: true,
         actions: [
           Consumer<QuoteProvider>(
             builder: (context, quoteProvider, child) {
               if (quoteProvider.quotesWithClients.isEmpty) {
-                return const SizedBox(width: 8);
+                return const SizedBox(width: 48); // Pour équilibrer le leading
               }
               
               return IconButton(
@@ -326,6 +544,15 @@ class _QuotesListScreenState extends State<QuotesListScreen> {
                           Icons.description_outlined,
                           size: 80,
                           color: Colors.grey.shade300,
+                        ).animate().scale(
+                          duration: 600.ms,
+                          curve: Curves.elasticOut,
+                        ).fadeIn(
+                          duration: 400.ms,
+                        ).shimmer(
+                          delay: 600.ms,
+                          duration: 1200.ms,
+                          color: Colors.grey.shade300.withOpacity(0.3),
                         ),
                         const SizedBox(height: 16),
                         Text(
@@ -337,6 +564,15 @@ class _QuotesListScreenState extends State<QuotesListScreen> {
                             fontWeight: FontWeight.w600,
                             color: Colors.grey.shade600,
                           ),
+                        ).animate().fadeIn(
+                          delay: 200.ms,
+                          duration: 400.ms,
+                        ).slideY(
+                          begin: 0.2,
+                          end: 0,
+                          delay: 200.ms,
+                          duration: 400.ms,
+                          curve: Curves.easeOutCubic,
                         ),
                         const SizedBox(height: 8),
                         if (_searchQuery.isEmpty)
@@ -346,6 +582,15 @@ class _QuotesListScreenState extends State<QuotesListScreen> {
                               fontSize: 14,
                               color: Colors.grey.shade500,
                             ),
+                          ).animate().fadeIn(
+                            delay: 400.ms,
+                            duration: 400.ms,
+                          ).slideY(
+                            begin: 0.2,
+                            end: 0,
+                            delay: 400.ms,
+                            duration: 400.ms,
+                            curve: Curves.easeOutCubic,
                           ),
                         if (_searchQuery.isEmpty) ...[
                           const SizedBox(height: 24),
@@ -369,6 +614,15 @@ class _QuotesListScreenState extends State<QuotesListScreen> {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
+                          ).animate().fadeIn(
+                            delay: 600.ms,
+                            duration: 500.ms,
+                          ).scale(
+                            delay: 600.ms,
+                            duration: 500.ms,
+                            begin: const Offset(0.8, 0.8),
+                            end: const Offset(1.0, 1.0),
+                            curve: Curves.easeOutBack,
                           ),
                         ],
                       ],
@@ -383,7 +637,7 @@ class _QuotesListScreenState extends State<QuotesListScreen> {
                     itemCount: filteredQuotes.length,
                     itemBuilder: (context, index) {
                       final quoteWithClient = filteredQuotes[index];
-                      return _buildQuoteCard(quoteWithClient);
+                      return _buildQuoteCard(quoteWithClient, index);
                     },
                   ),
                 );
@@ -443,7 +697,7 @@ class _QuotesListScreenState extends State<QuotesListScreen> {
     );
   }
 
-  Widget _buildQuoteCard(QuoteWithClient quoteWithClient) {
+  Widget _buildQuoteCard(QuoteWithClient quoteWithClient, int index) {
     final quote = quoteWithClient.quote;
     final client = quoteWithClient.client;
     final th = Theme.of(context);
@@ -477,93 +731,190 @@ class _QuotesListScreenState extends State<QuotesListScreen> {
         statusLabel = 'BROUILLON';
     }
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 0,
-      color: cardColor,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: borderClr, width: 1),
+    return Dismissible(
+      key: Key('quote_${quote.id}'),
+      direction: DismissDirection.endToStart,
+      confirmDismiss: (direction) async {
+        MobileUtils.mediumHaptic();
+        final confirm = await _showDeleteConfirmation(quote.id, client?.name ?? 'Client inconnu');
+        return confirm == true;
+      },
+      onDismissed: (direction) async {
+        // Supprimer le devis de la base de données
+        final success = await context.read<QuoteProvider>().deleteQuote(quote.id);
+        
+        if (mounted) {
+          if (success) {
+            MobileUtils.showMobileSnackBar(
+              context,
+              message: 'Devis supprimé avec succès',
+              backgroundColor: Colors.green,
+              icon: Icons.check_circle_outline,
+            );
+          } else {
+            MobileUtils.showMobileSnackBar(
+              context,
+              message: 'Erreur lors de la suppression',
+              backgroundColor: Colors.red,
+              icon: Icons.error_outline,
+            );
+            // Recharger en cas d'erreur pour restaurer l'affichage
+            await _loadQuotes();
+          }
+        }
+      },
+      background: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: Colors.red,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        child: const Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.delete_outline, color: Colors.white, size: 28),
+            SizedBox(height: 4),
+            Text(
+              'Supprimer',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
       ),
-      child: InkWell(
-        onTap: () => _navigateToQuotePreview(quote.id),
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Text(
-                      client?.name ?? 'Client inconnu',
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 12),
+        elevation: 0,
+        color: cardColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: borderClr, width: 1),
+        ),
+        child: InkWell(
+          onTap: () => _navigateToQuotePreview(quote.id),
+          onLongPress: () {
+            MobileUtils.mediumHaptic();
+            _showQuoteOptions(quote.id, client?.name ?? 'Client inconnu');
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        client?.name ?? 'Client inconnu',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: titleColor,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: statusColor,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            statusLabel,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {
+                              MobileUtils.lightHaptic();
+                              _showQuoteOptions(quote.id, client?.name ?? 'Client inconnu');
+                            },
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: (isDark ? Colors.grey.shade800 : Colors.grey.shade100),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                Icons.more_vert,
+                                color: isDark ? Colors.grey.shade300 : Colors.grey[700],
+                                size: 18,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${quote.quoteNumber} • ${_formatDate(quote.quoteDate)}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? Colors.grey.shade400 : Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    CircleAvatar(
+                      radius: 16,
+                      backgroundColor: const Color(0xFF2D7A8E).withOpacity(0.1),
+                      child: Text(
+                        (client?.name ?? 'C').substring(0, 1).toUpperCase(),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF2D7A8E),
+                        ),
+                      ),
+                    ),
+                    Text(
+                      CurrencyFormatter.format(quote.totalTTC),
                       style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                         color: titleColor,
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: statusColor,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      statusLabel,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '${quote.quoteNumber} • ${_formatDate(quote.quoteDate)}',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isDark ? Colors.grey.shade400 : Colors.grey[600],
+                  ],
                 ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  CircleAvatar(
-                    radius: 16,
-                    backgroundColor: const Color(0xFF2D7A8E).withOpacity(0.1),
-                    child: Text(
-                      (client?.name ?? 'C').substring(0, 1).toUpperCase(),
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF2D7A8E),
-                      ),
-                    ),
-                  ),
-                  Text(
-                    CurrencyFormatter.format(quote.totalTTC),
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: titleColor,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
+    ).animate().fadeIn(
+      delay: Duration(milliseconds: 50 * index),
+      duration: 500.ms,
+    ).slideY(
+      begin: 0.2,
+      end: 0,
+      delay: Duration(milliseconds: 50 * index),
+      duration: 500.ms,
+      curve: Curves.easeOutCubic,
     );
   }
 

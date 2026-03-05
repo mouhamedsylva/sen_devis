@@ -3,16 +3,22 @@ import '../data/database/app_database.dart';
 import '../data/models/model_extensions.dart';
 import 'package:drift/drift.dart' as drift;
 
+enum SortOption { nameAZ, dateAdded, quoteCount }
+
 class ClientProvider with ChangeNotifier {
   final AppDatabase _db = AppDatabase();
   
   List<Client> _clients = [];
   bool _isLoading = false;
   String? _errorMessage;
+  SortOption _sortOption = SortOption.nameAZ;
+  // Cache du nombre de devis par client
+  Map<int, int> _quoteCounts = {};
 
-  List<Client> get clients => _clients;
+  List<Client> get clients => _getSortedClients();
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  SortOption get sortOption => _sortOption;
 
   // Charger tous les clients
   Future<void> loadClients(int userId) async {
@@ -21,12 +27,62 @@ class ClientProvider with ChangeNotifier {
 
     try {
       _clients = await _db.getClientsByUser(userId);
+      // Charger le nombre de devis pour chaque client
+      await _loadQuoteCounts();
       _isLoading = false;
       notifyListeners();
     } catch (e) {
       _errorMessage = 'Erreur lors du chargement: ${e.toString()}';
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  // Charger le nombre de devis par client
+  Future<void> _loadQuoteCounts() async {
+    _quoteCounts = {};
+    for (final client in _clients) {
+      final quotes = await _db.getQuotesByClient(client.id);
+      _quoteCounts[client.id] = quotes.length;
+    }
+  }
+
+  // Retourner les clients triés selon l'option active
+  List<Client> _getSortedClients() {
+    final sorted = List<Client>.from(_clients);
+    switch (_sortOption) {
+      case SortOption.nameAZ:
+        sorted.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        break;
+      case SortOption.dateAdded:
+        sorted.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        break;
+      case SortOption.quoteCount:
+        sorted.sort((a, b) {
+          final countA = _quoteCounts[a.id] ?? 0;
+          final countB = _quoteCounts[b.id] ?? 0;
+          return countB.compareTo(countA);
+        });
+        break;
+    }
+    return sorted;
+  }
+
+  // Changer l'option de tri
+  void setSortOption(SortOption option) {
+    _sortOption = option;
+    notifyListeners();
+  }
+
+  // Nombre de devis pour un client
+  int getQuoteCount(int clientId) => _quoteCounts[clientId] ?? 0;
+
+  // Récupérer les devis d'un client depuis la base
+  Future<List<Quote>> getClientQuotes(int clientId) async {
+    try {
+      return await _db.getQuotesByClient(clientId);
+    } catch (e) {
+      return [];
     }
   }
 
@@ -44,15 +100,16 @@ class ClientProvider with ChangeNotifier {
       final clientCompanion = CompanionHelpers.createClient(
         userId: userId,
         name: name,
-        phone: drift.Value(phone),
-        email: drift.Value(email),
-        address: drift.Value(address),
+        phone: phone != null ? drift.Value(phone) : const drift.Value.absent(),
+        email: email != null ? drift.Value(email) : const drift.Value.absent(),
+        address: address != null ? drift.Value(address) : const drift.Value.absent(),
       );
 
       final id = await _db.insertClient(clientCompanion);
       final newClient = await _db.getClientById(id);
       if (newClient != null) {
         _clients.add(newClient);
+        _quoteCounts[id] = 0;
       }
       
       notifyListeners();
@@ -113,6 +170,7 @@ class ClientProvider with ChangeNotifier {
 
       await _db.deleteClient(id);
       _clients.removeWhere((c) => c.id == id);
+      _quoteCounts.remove(id);
       
       notifyListeners();
       return true;
@@ -134,10 +192,10 @@ class ClientProvider with ChangeNotifier {
 
   // Rechercher des clients
   List<Client> searchClients(String query) {
-    if (query.isEmpty) return _clients;
+    if (query.isEmpty) return clients;
     
     final lowerQuery = query.toLowerCase();
-    return _clients.where((client) {
+    return clients.where((client) {
       return client.name.toLowerCase().contains(lowerQuery) ||
              (client.phone?.toLowerCase().contains(lowerQuery) ?? false);
     }).toList();

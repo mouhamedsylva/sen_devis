@@ -8,6 +8,7 @@ import '../../core/utils/validators.dart';
 import '../../core/utils/mobile_utils.dart';
 import '../../core/constants/mobile_constants.dart';
 import '../../core/localization/localization_extension.dart';
+import '../../data/database/app_database.dart';
 import '../../widgets/loading_indicator.dart';
 import '../../widgets/mobile_button.dart';
 import '../../widgets/mobile_text_field.dart';
@@ -79,6 +80,7 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
 
     final clientProvider = context.read<ClientProvider>();
     bool success;
+    Client? createdOrUpdatedClient;
 
     if (_clientId == null) {
       // Ajouter un nouveau client - INCLURE L'EMAIL
@@ -89,6 +91,16 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
         email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim(), // ✅ AJOUTER L'EMAIL
         address: _addressController.text.trim().isEmpty ? null : _addressController.text.trim(),
       );
+      
+      // Récupérer le client créé
+      if (success) {
+        await clientProvider.loadClients(userId);
+        // Trouver le client qui vient d'être créé (le dernier avec ce nom)
+        createdOrUpdatedClient = clientProvider.clients.lastWhere(
+          (c) => c.name == _nameController.text.trim(),
+          orElse: () => clientProvider.clients.last,
+        );
+      }
     } else {
       // Mettre à jour le client existant - INCLURE L'EMAIL
       success = await clientProvider.updateClient(
@@ -98,6 +110,11 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
         email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim(), // ✅ AJOUTER L'EMAIL
         address: _addressController.text.trim().isEmpty ? null : _addressController.text.trim(),
       );
+      
+      // Récupérer le client mis à jour
+      if (success) {
+        createdOrUpdatedClient = clientProvider.getClientById(_clientId!);
+      }
     }
 
     setState(() {
@@ -113,7 +130,8 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
         backgroundColor: AppColors.success,
         icon: Icons.check_circle_outline,
       );
-      Navigator.of(context).pop();
+      // Retourner le client créé ou mis à jour
+      Navigator.of(context).pop(createdOrUpdatedClient);
     } else {
       MobileUtils.showMobileSnackBar(
         context,

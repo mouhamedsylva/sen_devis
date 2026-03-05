@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../providers/auth_provider.dart';
 import '../../core/constants/strings.dart';
 import '../../core/constants/colors.dart';
@@ -155,13 +156,40 @@ class _LoginScreenState extends State<LoginScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.stretch,
                                   children: [
-                                    _buildPhoneField(),
+                                    _buildPhoneField().animate().fadeIn(
+                                      delay: 600.ms,
+                                      duration: 500.ms,
+                                    ).slideY(
+                                      begin: 0.2,
+                                      end: 0,
+                                      delay: 600.ms,
+                                      duration: 500.ms,
+                                      curve: Curves.easeOutCubic,
+                                    ),
                                     SizedBox(height: MobileConstants.spacingM),
-                                    _buildPasswordField(),
+                                    _buildPasswordField().animate().fadeIn(
+                                      delay: 700.ms,
+                                      duration: 500.ms,
+                                    ).slideY(
+                                      begin: 0.2,
+                                      end: 0,
+                                      delay: 700.ms,
+                                      duration: 500.ms,
+                                      curve: Curves.easeOutCubic,
+                                    ),
                                     SizedBox(height: MobileConstants.spacingS),
-                                    _buildForgotPassword(),
+                                    // _buildForgotPassword(),
                                     SizedBox(height: MobileConstants.spacingL),
-                                    _buildLoginButton(),
+                                    _buildLoginButton().animate().fadeIn(
+                                      delay: 800.ms,
+                                      duration: 500.ms,
+                                    ).scale(
+                                      delay: 800.ms,
+                                      duration: 500.ms,
+                                      begin: const Offset(0.9, 0.9),
+                                      end: const Offset(1.0, 1.0),
+                                      curve: Curves.easeOutBack,
+                                    ),
                                   ],
                                 ),
                               ),
@@ -202,6 +230,13 @@ class _LoginScreenState extends State<LoginScreen> {
             size: 40,
             color: Color(0xFF0D5C63),
           ),
+        ).animate().scale(
+          duration: 600.ms,
+          curve: Curves.elasticOut,
+        ).shimmer(
+          delay: 400.ms,
+          duration: 1200.ms,
+          color: const Color(0xFF0D5C63).withOpacity(0.3),
         ),
         const SizedBox(height: 24),
         Text(
@@ -212,6 +247,15 @@ class _LoginScreenState extends State<LoginScreen> {
             color: Color(0xFF0D5C63),
             letterSpacing: -0.5,
           ),
+        ).animate().fadeIn(
+          delay: 200.ms,
+          duration: 600.ms,
+        ).slideY(
+          begin: 0.3,
+          end: 0,
+          delay: 200.ms,
+          duration: 600.ms,
+          curve: Curves.easeOutCubic,
         ),
       ],
     );
@@ -232,6 +276,15 @@ class _LoginScreenState extends State<LoginScreen> {
               height: 1.2,
             ),
             textAlign: TextAlign.center,
+          ).animate().fadeIn(
+            delay: 300.ms,
+            duration: 600.ms,
+          ).slideX(
+            begin: -0.2,
+            end: 0,
+            delay: 300.ms,
+            duration: 600.ms,
+            curve: Curves.easeOutCubic,
           ),
           const SizedBox(height: 8),
           Text(
@@ -242,6 +295,15 @@ class _LoginScreenState extends State<LoginScreen> {
               height: 1.5,
             ),
             textAlign: TextAlign.center,
+          ).animate().fadeIn(
+            delay: 500.ms,
+            duration: 600.ms,
+          ).slideX(
+            begin: -0.2,
+            end: 0,
+            delay: 500.ms,
+            duration: 600.ms,
+            curve: Curves.easeOutCubic,
           ),
         ],
       ),
@@ -338,28 +400,28 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildForgotPassword() {
-    return Align(
-      alignment: Alignment.centerRight,
-      child: TextButton(
-        onPressed: () {
-          // TODO: Implement forgot password
-        },
-        style: TextButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-          minimumSize: const Size(0, 44),
-        ),
-        child: Text(
-          context.tr('forgot_password'),
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF0D5C63),
-          ),
-        ),
-      ),
-    );
-  }
+  // Widget _buildForgotPassword() {
+  //   return Align(
+  //     alignment: Alignment.centerRight,
+  //     child: TextButton(
+  //       onPressed: () {
+  //         // TODO: Implement forgot password
+  //       },
+  //       style: TextButton.styleFrom(
+  //         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+  //         minimumSize: const Size(0, 44),
+  //       ),
+  //       child: Text(
+  //         context.tr('forgot_password'),
+  //         style: const TextStyle(
+  //           fontSize: 14,
+  //           fontWeight: FontWeight.w500,
+  //           color: Color(0xFF0D5C63),
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
 
   Widget _buildLoginButton() {
     return Consumer<AuthProvider>(
@@ -405,6 +467,15 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ],
       ),
+    ).animate().fadeIn(
+      delay: 900.ms,
+      duration: 500.ms,
+    ).slideY(
+      begin: 0.2,
+      end: 0,
+      delay: 900.ms,
+      duration: 500.ms,
+      curve: Curves.easeOutCubic,
     );
   }
 }

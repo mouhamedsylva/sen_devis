@@ -27,7 +27,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -51,6 +51,18 @@ class AppDatabase extends _$AppDatabase {
       if (from <= 3) {
         // Migration de la version 3 à 4 : Ajout du champ email pour les clients
         await m.addColumn(clients, clients.email);
+      }
+      if (from <= 4) {
+        // Migration de la version 4 à 5 : Ajout des conditions de devis
+        await m.addColumn(quotes, quotes.depositRequired);
+        await m.addColumn(quotes, quotes.depositPercentage);
+        await m.addColumn(quotes, quotes.validityDays);
+        await m.addColumn(quotes, quotes.deliveryDelay);
+      }
+      if (from <= 5) {
+        // Migration de la version 5 à 6 : Ajout du soft delete
+        await m.addColumn(quotes, quotes.deletedAt);
+        await m.addColumn(products, products.deletedAt);
       }
     },
     beforeOpen: (details) async {
@@ -119,7 +131,7 @@ class AppDatabase extends _$AppDatabase {
   
   Future<List<Product>> getProductsByUser(int userId) =>
       (select(products)
-        ..where((p) => p.userId.equals(userId))
+        ..where((p) => p.userId.equals(userId) & p.deletedAt.isNull())
         ..orderBy([(p) => OrderingTerm.asc(p.name)])).get();
   
   Future<Product?> getProductById(int id) =>
@@ -129,19 +141,44 @@ class AppDatabase extends _$AppDatabase {
   
   Future<bool> updateProduct(ProductsCompanion product) => update(products).replace(product);
   
+  // Soft delete
+  Future<bool> softDeleteProduct(int id) async {
+    final product = await getProductById(id);
+    if (product == null) return false;
+    
+    final updated = product.copyWith(deletedAt: Value(DateTime.now()));
+    return await update(products).replace(updated);
+  }
+  
+  // Restaurer un produit
+  Future<bool> restoreProduct(int id) async {
+    final product = await getProductById(id);
+    if (product == null) return false;
+    
+    final updated = product.copyWith(deletedAt: Value(null));
+    return await update(products).replace(updated);
+  }
+  
+  // Suppression définitive
   Future<int> deleteProduct(int id) =>
       (delete(products)..where((p) => p.id.equals(id))).go();
   
+  // Récupérer les produits supprimés
+  Future<List<Product>> getDeletedProducts(int userId) =>
+      (select(products)
+        ..where((p) => p.userId.equals(userId) & p.deletedAt.isNotNull())
+        ..orderBy([(p) => OrderingTerm.desc(p.deletedAt)])).get();
+  
   Future<List<Product>> searchProducts(int userId, String query) =>
       (select(products)
-        ..where((p) => p.userId.equals(userId) & p.name.like('%$query%'))
+        ..where((p) => p.userId.equals(userId) & p.name.like('%$query%') & p.deletedAt.isNull())
         ..orderBy([(p) => OrderingTerm.asc(p.name)])).get();
 
   // ==================== QUOTES ====================
   
   Future<List<Quote>> getQuotesByUser(int userId) =>
       (select(quotes)
-        ..where((q) => q.userId.equals(userId))
+        ..where((q) => q.userId.equals(userId) & q.deletedAt.isNull())
         ..orderBy([(q) => OrderingTerm.desc(q.createdAt)])).get();
   
   Future<Quote?> getQuoteById(int id) =>
@@ -154,17 +191,42 @@ class AppDatabase extends _$AppDatabase {
   
   Future<bool> updateQuote(QuotesCompanion quote) => update(quotes).replace(quote);
   
+  // Soft delete
+  Future<bool> softDeleteQuote(int id) async {
+    final quote = await getQuoteById(id);
+    if (quote == null) return false;
+    
+    final updated = quote.copyWith(deletedAt: Value(DateTime.now()));
+    return await update(quotes).replace(updated);
+  }
+  
+  // Restaurer un devis
+  Future<bool> restoreQuote(int id) async {
+    final quote = await getQuoteById(id);
+    if (quote == null) return false;
+    
+    final updated = quote.copyWith(deletedAt: Value(null));
+    return await update(quotes).replace(updated);
+  }
+  
+  // Suppression définitive
   Future<int> deleteQuote(int id) =>
       (delete(quotes)..where((q) => q.id.equals(id))).go();
   
+  // Récupérer les devis supprimés
+  Future<List<Quote>> getDeletedQuotes(int userId) =>
+      (select(quotes)
+        ..where((q) => q.userId.equals(userId) & q.deletedAt.isNotNull())
+        ..orderBy([(q) => OrderingTerm.desc(q.deletedAt)])).get();
+  
   Future<List<Quote>> getQuotesByStatus(int userId, String status) =>
       (select(quotes)
-        ..where((q) => q.userId.equals(userId) & q.status.equals(status))
+        ..where((q) => q.userId.equals(userId) & q.status.equals(status) & q.deletedAt.isNull())
         ..orderBy([(q) => OrderingTerm.desc(q.createdAt)])).get();
   
   Future<List<Quote>> getQuotesByClient(int clientId) =>
       (select(quotes)
-        ..where((q) => q.clientId.equals(clientId))
+        ..where((q) => q.clientId.equals(clientId) & q.deletedAt.isNull())
         ..orderBy([(q) => OrderingTerm.desc(q.createdAt)])).get();
 
   // ==================== QUOTE ITEMS ====================
@@ -191,7 +253,7 @@ class AppDatabase extends _$AppDatabase {
   Future<List<QuoteWithClient>> getQuotesWithClients(int userId) {
     final query = select(quotes).join([
       leftOuterJoin(clients, clients.id.equalsExp(quotes.clientId))
-    ])..where(quotes.userId.equals(userId))
+    ])..where(quotes.userId.equals(userId) & quotes.deletedAt.isNull())
       ..orderBy([OrderingTerm.desc(quotes.createdAt)]);
 
     return query.map((row) {

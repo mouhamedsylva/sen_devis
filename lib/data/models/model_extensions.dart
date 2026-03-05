@@ -67,6 +67,28 @@ extension QuoteExtension on Quote {
       totalTTC: totalTTC,
     );
   }
+  
+  // Calculer la date d'expiration du devis
+  DateTime get expirationDate {
+    return quoteDate.add(Duration(days: validityDays));
+  }
+  
+  // Vérifier si le devis est expiré
+  bool get isExpired {
+    return DateTime.now().isAfter(expirationDate);
+  }
+  
+  // Calculer le montant de l'acompte
+  double get depositAmount {
+    if (!depositRequired) return 0.0;
+    return totalTTC * (depositPercentage / 100);
+  }
+  
+  // Calculer le solde restant
+  double get remainingAmount {
+    if (!depositRequired) return totalTTC;
+    return totalTTC - depositAmount;
+  }
 }
 
 // ==================== QUOTE ITEM ====================
@@ -104,6 +126,36 @@ extension QuoteItemExtension on QuoteItem {
       productName: productName,
       quantity: quantity,
       unitPrice: unitPrice,
+      vatRate: vatRate,
+      totalHT: ht,
+      totalVAT: vat,
+      totalTTC: ttc,
+      createdAt: DateTime.now(),
+    );
+  }
+
+  // Identifiant sentinel pour distinguer la main d'œuvre des produits
+  static const int laborSentinelId = -1;
+
+  static bool isLaborItem(QuoteItem item) => item.productId == laborSentinelId;
+
+  static QuoteItem createLaborTemp({
+    required String description,
+    required double hours,
+    required double hourlyRate,
+    double vatRate = 0.0,
+  }) {
+    final ht = hours * hourlyRate;
+    final vat = ht * vatRate / 100;
+    final ttc = ht + vat;
+
+    return QuoteItem(
+      id: 0,
+      quoteId: 0,
+      productId: laborSentinelId, // ✅ sentinel -1 → identifie la MO
+      productName: description,
+      quantity: hours,
+      unitPrice: hourlyRate,
       vatRate: vatRate,
       totalHT: ht,
       totalVAT: vat,
@@ -160,6 +212,10 @@ class CompanionHelpers {
     required DateTime quoteDate,
     String status = 'draft',
     String? notes,
+    bool depositRequired = true,
+    double depositPercentage = 40.0,
+    int validityDays = 30,
+    String? deliveryDelay,
   }) {
     final now = DateTime.now();
     return QuotesCompanion.insert(
@@ -169,6 +225,10 @@ class CompanionHelpers {
       quoteDate: quoteDate,
       status: drift.Value(status),
       notes: drift.Value(notes),
+      depositRequired: drift.Value(depositRequired),
+      depositPercentage: drift.Value(depositPercentage),
+      validityDays: drift.Value(validityDays),
+      deliveryDelay: drift.Value(deliveryDelay),
       createdAt: now,
       updatedAt: now,
     );
@@ -204,7 +264,7 @@ class CompanionHelpers {
     required int userId,
     required String name,
     drift.Value<String?> email = const drift.Value.absent(),
-    drift.Value<String?> phone = const drift.Value.absent(),
+    dynamic phone, // Accepte String ou drift.Value<String?>
     drift.Value<String?> website = const drift.Value.absent(),
     drift.Value<String?> address = const drift.Value.absent(),
     drift.Value<String?> city = const drift.Value.absent(),
@@ -217,11 +277,17 @@ class CompanionHelpers {
     String currency = 'FCFA',
   }) {
     final now = DateTime.now();
+    
+    // Convertir phone en drift.Value si c'est une String
+    final phoneValue = phone is String 
+        ? drift.Value(phone) 
+        : (phone as drift.Value<String?>? ?? const drift.Value.absent());
+    
     return CompaniesCompanion.insert(
       userId: userId,
       name: name,
       email: email,
-      phone: phone,
+      phone: phoneValue,
       website: website,
       address: address,
       city: city,

@@ -49,22 +49,31 @@ class QuoteProvider with ChangeNotifier {
     required DateTime quoteDate,
     required List<QuoteItem> items,
     String? notes,
+    String? quoteNumber, // ✅ Paramètre optionnel pour le numéro de devis
+    bool depositRequired = true,
+    double depositPercentage = 40.0,
+    int validityDays = 30,
+    String? deliveryDelay,
   }) async {
     _errorMessage = null;
 
     try {
-      // Générer le numéro de devis
-      final quoteNumber = await _db.generateQuoteNumber();
+      // Générer le numéro de devis si non fourni
+      final finalQuoteNumber = quoteNumber ?? await _db.generateQuoteNumber();
 
       // Utiliser une transaction pour garantir la cohérence
       final quoteId = await _db.executeInTransaction(() async {
         // Créer le devis
         final quoteCompanion = CompanionHelpers.createQuote(
           userId: userId,
-          quoteNumber: quoteNumber,
+          quoteNumber: finalQuoteNumber,
           clientId: clientId,
           quoteDate: quoteDate,
           notes: notes,
+          depositRequired: depositRequired,
+          depositPercentage: depositPercentage,
+          validityDays: validityDays,
+          deliveryDelay: deliveryDelay,
         );
 
         final id = await _db.insertQuote(quoteCompanion);
@@ -229,19 +238,54 @@ class QuoteProvider with ChangeNotifier {
     }
   }
 
-  // Supprimer un devis
+  // Supprimer un devis (soft delete)
   Future<bool> deleteQuote(int id) async {
     _errorMessage = null;
 
     try {
-      // Les articles seront supprimés automatiquement grâce à ON DELETE CASCADE
-      await _db.deleteQuote(id);
+      await _db.softDeleteQuote(id);
       _quotesWithClients.removeWhere((qwc) => qwc.quote.id == id);
       
       notifyListeners();
       return true;
     } catch (e) {
       _errorMessage = 'Erreur lors de la suppression: ${e.toString()}';
+      notifyListeners();
+      return false;
+    }
+  }
+  
+  // Restaurer un devis
+  Future<bool> restoreQuote(int id) async {
+    _errorMessage = null;
+
+    try {
+      final success = await _db.restoreQuote(id);
+      if (success) {
+        // Recharger les devis pour inclure le devis restauré
+        final userId = _quotesWithClients.isNotEmpty ? _quotesWithClients.first.quote.userId : null;
+        if (userId != null) {
+          await loadQuotes(userId);
+        }
+      }
+      return success;
+    } catch (e) {
+      _errorMessage = 'Erreur lors de la restauration: ${e.toString()}';
+      notifyListeners();
+      return false;
+    }
+  }
+  
+  // Supprimer définitivement un devis
+  Future<bool> permanentlyDeleteQuote(int id) async {
+    _errorMessage = null;
+
+    try {
+      await _db.deleteQuote(id);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = 'Erreur lors de la suppression définitive: ${e.toString()}';
       notifyListeners();
       return false;
     }
